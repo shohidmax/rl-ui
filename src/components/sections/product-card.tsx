@@ -28,10 +28,10 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="mt-2 text-lg font-semibold text-primary">BDT {product.price.toLocaleString()}</p>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex flex-col sm:flex-row gap-2">
-        <AddToCartButton product={product} variant="outline" className="w-full">
+        <AddToCartButton product={product} variant="outline" className="w-full flex-1">
           Add to Cart
         </AddToCartButton>
-        <AddToCartButton product={product} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+        <AddToCartButton product={product} className="w-full flex-1 bg-accent hover:bg-accent/90 text-accent-foreground">
           Order Now
         </AddToCartButton>
       </CardFooter>
