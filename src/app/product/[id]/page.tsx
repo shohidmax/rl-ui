@@ -118,7 +118,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                 ))}
               </div>
             </div>
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col">
               <h1 className="text-3xl md:text-4xl font-bold">{product.name}</h1>
               <div className="mt-4">
                 <Badge variant="outline">{product.category}</Badge>
@@ -156,15 +156,21 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                   Order Now
                 </AddToCartButton>
               </div>
-                <div className="mt-8 space-y-4">
-                    <h2 className="text-xl font-semibold">Product Highlights:</h2>
-                    <p className="text-muted-foreground">{product.description}</p>
-                </div>
             </div>
+          </div>
+          
+          <div className="mt-16">
+            <Separator />
+             <div className="py-12">
+                <h2 className="text-2xl font-bold mb-4">Product Description</h2>
+                <div className="prose prose-sm max-w-none text-muted-foreground">
+                   <p>{product.description}</p>
+                </div>
+             </div>
           </div>
 
           {relatedProducts.length > 0 && (
-            <div className="mt-24">
+            <div className="mt-12">
               <Separator />
               <h2 className="text-3xl md:text-4xl mt-16 mb-8 text-center">
                 Related Products
