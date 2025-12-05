@@ -175,7 +175,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
-                         <p className="text-sm text-muted-foreground">({product.stock} items available)</p>
+                         <p className="text-sm text-muted-foreground">({product.stock} in stock)</p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2">
