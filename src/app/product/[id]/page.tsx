@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { products } from '@/lib/data';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -20,11 +20,20 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+// Even in a client component, params can be a promise.
+// We can use `React.use` to unwrap it.
+type ProductPageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default function ProductDetailPage({ params }: ProductPageProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  
+  // Asynchronously get the id from the params promise.
+  const { id } = use(params);
 
-  const product = products.find((p) => p.id === params.id);
+  const product = products.find((p) => p.id === id);
 
   useEffect(() => {
     if (!api) {
