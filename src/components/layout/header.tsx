@@ -46,7 +46,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" asChild className="text-accent-foreground bg-accent hover:bg-accent/90">
+            <Button variant="ghost" asChild className="text-accent-foreground bg-accent hover:bg-accent/90 text-lg font-bold">
                 <Link href="https://wa.me/8801776180359" target="_blank">
                     <WhatsAppIcon className="h-5 w-5 mr-2" />
                     01776180359
