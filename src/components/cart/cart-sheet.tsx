@@ -14,6 +14,7 @@ import { useCart } from "./cart-context";
 import { CartItem } from "./cart-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
 
 export function CartSheet({ children }: { children?: React.ReactNode }) {
   const { cart, clearCart } = useCart();
@@ -50,8 +51,8 @@ export function CartSheet({ children }: { children?: React.ReactNode }) {
                     <Button variant="outline" className="w-full" onClick={clearCart}>
                         Clear Cart
                     </Button>
-                    <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                        Checkout
+                    <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                        <Link href="/checkout">Checkout</Link>
                     </Button>
                 </div>
               </div>
