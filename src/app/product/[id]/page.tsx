@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 // Even in a client component, params can be a promise.
 // We can use `React.use` to unwrap it.
 type ProductPageProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default function ProductDetailPage({ params }: ProductPageProps) {
@@ -35,7 +35,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const [quantity, setQuantity] = useState(1);
   
   // Asynchronously get the slug from the params promise.
-  const { slug } = use(params);
+  const { id: slug } = use(params);
 
   const product = products.find((p) => p.name.toLowerCase().replace(/\s+/g, '-') === slug);
 
