@@ -17,7 +17,16 @@ export function CartItem({ item }: CartItemProps) {
 
   return (
     <div className="flex items-start gap-4">
-      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md">
+        <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground h-8 w-8 -ml-2"
+            onClick={() => removeFromCart(product.id)}
+        >
+            <X className="h-4 w-4" />
+             <span className="sr-only">Remove item</span>
+        </Button>
+      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
         <Image
           src={product.image}
           alt={product.name}
@@ -27,7 +36,7 @@ export function CartItem({ item }: CartItemProps) {
         />
       </div>
       <div className="flex-1">
-        <h3 className="font-semibold">{product.name}</h3>
+        <h3 className="font-semibold leading-tight">{product.name}</h3>
         <p className="text-sm text-muted-foreground">
           BDT {product.price.toLocaleString()}
         </p>
@@ -37,14 +46,20 @@ export function CartItem({ item }: CartItemProps) {
             size="icon"
             className="h-8 w-8"
             onClick={() => updateQuantity(product.id, quantity - 1)}
+            disabled={quantity <= 1}
           >
             <Minus className="h-4 w-4" />
           </Button>
           <Input
             type="number"
             value={quantity}
-            onChange={(e) => updateQuantity(product.id, parseInt(e.target.value) || 0)}
-            className="h-8 w-14 rounded-none border-x-0 text-center"
+            onChange={(e) => {
+                const value = parseInt(e.target.value);
+                if (value > 0) {
+                    updateQuantity(product.id, value)
+                }
+            }}
+            className="h-8 w-14 rounded-none border-x-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <Button
             variant="outline"
@@ -56,14 +71,9 @@ export function CartItem({ item }: CartItemProps) {
           </Button>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-muted-foreground"
-        onClick={() => removeFromCart(product.id)}
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      <p className="font-semibold text-sm">
+        {(product.price * quantity).toLocaleString()}
+      </p>
     </div>
   );
 }

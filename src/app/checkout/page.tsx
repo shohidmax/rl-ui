@@ -218,15 +218,6 @@ export default function CheckoutPage() {
                                 <div className="space-y-3">
                                     {cart.map(item => (
                                         <div key={item.product.id} className="flex items-center gap-4">
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                className="h-6 w-6 rounded-full"
-                                                onClick={() => removeFromCart(item.product.id)}
-                                            >
-                                                <X className="h-4 w-4" />
-                                                <span className="sr-only">Remove item</span>
-                                            </Button>
                                             <div className="relative h-16 w-16 rounded-md overflow-hidden">
                                                 <Image 
                                                     src={item.product.image} 
@@ -243,14 +234,20 @@ export default function CheckoutPage() {
                                                         size="icon"
                                                         className="h-6 w-6"
                                                         onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                                        disabled={item.quantity <= 1}
                                                     >
                                                         <Minus className="h-3 w-3" />
                                                     </Button>
                                                     <Input
                                                         type="number"
                                                         value={item.quantity}
-                                                        onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value) || 0)}
-                                                        className="h-6 w-10 rounded-none border-x-0 text-center px-0"
+                                                        onChange={(e) => {
+                                                            const value = parseInt(e.target.value);
+                                                            if (value > 0) {
+                                                                updateQuantity(item.product.id, value)
+                                                            }
+                                                        }}
+                                                        className="h-6 w-10 rounded-none border-x-0 text-center px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                     />
                                                     <Button
                                                         variant="outline"
@@ -300,7 +297,7 @@ export default function CheckoutPage() {
                                     form="checkout-form"
                                     className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                                     onClick={form.handleSubmit(onSubmit)}
-                                    disabled={form.formState.isSubmitting}
+                                    disabled={form.formState.isSubmitting || !form.formState.isValid || shippingCharge === null}
                                 >
                                     Place Order
                                 </Button>
