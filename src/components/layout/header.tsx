@@ -57,8 +57,8 @@ export function Header() {
             </Button>
           </div>
           
-          <CartSheet>
-            <Button variant="ghost" size="icon" className="relative" aria-label="Shopping Cart">
+          <Link href="/checkout" passHref>
+             <Button variant="ghost" size="icon" className="relative" aria-label="Shopping Cart">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -66,7 +66,7 @@ export function Header() {
                 </span>
               )}
             </Button>
-          </CartSheet>
+          </Link>
 
           <div className="md:hidden">
             <Sheet>
@@ -93,7 +93,18 @@ export function Header() {
                     ))}
                     <Link href="/admin" className="text-muted-foreground hover:text-foreground">Admin</Link>
                   </nav>
-                  <div className="mt-4 flex items-center gap-4">
+                   <div className="mt-auto flex flex-col gap-4">
+                     <CartSheet>
+                        <Button variant="outline" className="relative justify-start">
+                            <ShoppingCart className="h-5 w-5 mr-2" />
+                            View Cart
+                            {cartItemCount > 0 && (
+                                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                                {cartItemCount}
+                                </span>
+                            )}
+                        </Button>
+                     </CartSheet>
                      <Button variant="outline" asChild>
                         <Link href="https://wa.me/8801776180359" target="_blank">
                             <WhatsAppIcon className="h-5 w-5 mr-2" />
