@@ -16,12 +16,6 @@ export default function InvoicePage({ params }: InvoicePageProps) {
 
   const order = recentOrders.find((o) => o.id === id);
 
-  useEffect(() => {
-    if (order) {
-      setTimeout(() => window.print(), 100);
-    }
-  }, [order]);
-  
   if (!order) {
     notFound();
   }
