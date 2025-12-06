@@ -19,7 +19,7 @@ export default function AdminLayout({
         <AdminSidebar />
         <SidebarOverlay />
         <div className="flex flex-col md:pl-[256px]">
-          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-20">
+          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
             <SidebarTrigger asChild>
               <Button
                 variant="outline"
