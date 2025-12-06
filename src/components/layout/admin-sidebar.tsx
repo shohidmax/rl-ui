@@ -9,7 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
   SidebarContent,
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, ShoppingCart, Package, FileText, Home, Tags, Truck, MessageSquare } from "lucide-react";
@@ -33,7 +32,6 @@ export function AdminSidebar() {
         <SidebarHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Admin Panel</h2>
-            <SidebarTrigger />
           </div>
         </SidebarHeader>
         <SidebarMenu>
@@ -41,7 +39,7 @@ export function AdminSidebar() {
             <SidebarMenuItem key={item.href}>
               <Link href={item.href}>
                 <SidebarMenuButton
-                  isActive={pathname === item.href}
+                  isActive={pathname.startsWith(item.href) && (item.href !== "/admin" || pathname === "/admin")}
                   icon={item.icon}
                 >
                   {item.label}

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -70,21 +71,24 @@ export default function AdminOrdersPage() {
   };
 
     return (
-        <div className="flex flex-col">
-            <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0">
-                <h1 className="text-xl font-semibold tracking-tight">Orders</h1>
-                <Button variant="outline">
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export
-                </Button>
+        <div className="flex flex-col h-full">
+            <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0 md:hidden">
+                 {/* Mobile-specific header elements if any */}
             </header>
-            <main className="flex-1 p-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>All Orders</CardTitle>
-                        <CardDescription>View and manage all customer orders.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
+            <main className="flex-1 p-6 flex flex-col">
+                 <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
+                        <p className="text-muted-foreground">View and manage all customer orders.</p>
+                    </div>
+                    <Button variant="outline">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export
+                    </Button>
+                </div>
+                 <Card className="flex-1 flex flex-col">
+                    <CardContent className="pt-6 flex-1 flex flex-col">
+                        <div className="flex-1 overflow-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -177,6 +181,7 @@ export default function AdminOrdersPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
                     </CardContent>
                     <CardFooter>
                         <Pagination>

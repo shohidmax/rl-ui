@@ -1,5 +1,8 @@
+
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -8,8 +11,26 @@ export default function AdminLayout({
 }>) {
   return (
     <SidebarProvider>
+      <div className="flex min-h-screen">
         <AdminSidebar />
-        <main className="flex-1 bg-muted/30">{children}</main>
+        <main className="flex-1 bg-muted/30">
+          <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-6 md:justify-end">
+            <div className="md:hidden">
+              <h2 className="text-lg font-semibold">Admin Panel</h2>
+            </div>
+            <SidebarTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Toggle Menu</span>
+                </Button>
+            </SidebarTrigger>
+             <div className="hidden md:flex">
+              {/* Desktop header content can go here */}
+            </div>
+          </header>
+          {children}
+        </main>
+      </div>
     </SidebarProvider>
   );
 }

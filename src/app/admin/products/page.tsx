@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from "react";
@@ -113,25 +114,25 @@ export default function AdminProductsPage() {
 
 
     return (
-        <div className="flex flex-col">
-            <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0">
-                <h1 className="text-xl font-semibold tracking-tight">Products</h1>
-                <Button asChild>
-                    <Link href="/admin/products/new">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Product
-                    </Link>
-                </Button>
+        <div className="flex flex-col h-full">
+            <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0 md:hidden">
+                {/* This header is only for mobile, actual title is in the main section */}
             </header>
-            <main className="flex-1 p-6">
-                <Card>
-                    <CardHeader>
-                        
-                        <CardTitle>All Products</CardTitle>
-                        <CardDescription>Manage your products and view their sales performance.</CardDescription>
-                       
-                    </CardHeader>
-                    <CardContent>
+            <main className="flex-1 p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+                        <p className="text-muted-foreground">Manage your products and view their sales performance.</p>
+                    </div>
+                    <Button asChild>
+                        <Link href="/admin/products/new">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Product
+                        </Link>
+                    </Button>
+                </div>
+                <Card className="flex-1 flex flex-col">
+                    <CardContent className="pt-6 flex-1 flex flex-col">
                          <div className="flex flex-wrap items-center gap-2 mb-4">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -196,98 +197,100 @@ export default function AdminProductsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">
-                                        <Checkbox 
-                                            onCheckedChange={handleSelectAll}
-                                            checked={
-                                                selectedProducts.length > 0 &&
-                                                selectedProducts.length === filteredProducts.length
-                                            }
-                                            aria-label="Select all rows"
-                                        />
-                                    </TableHead>
-                                    <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Stock</TableHead>
-                                    <TableHead className="text-right">Price</TableHead>
-                                    <TableHead>
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredProducts.map(product => (
-                                     <TableRow key={product.id} data-state={selectedProducts.includes(product.id) ? 'selected' : undefined}>
-                                        <TableCell>
+                        <div className="flex-1 overflow-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12">
                                             <Checkbox 
-                                                checked={selectedProducts.includes(product.id)}
-                                                onCheckedChange={(checked) => handleSelectProduct(product.id, !!checked)}
-                                                aria-label={`Select row for ${product.name}`}
+                                                onCheckedChange={handleSelectAll}
+                                                checked={
+                                                    selectedProducts.length > 0 &&
+                                                    selectedProducts.length === filteredProducts.length
+                                                }
+                                                aria-label="Select all rows"
                                             />
-                                        </TableCell>
-                                        <TableCell className="hidden sm:table-cell">
-                                            <Image src={product.image} alt={product.name} width={60} height={60} className="rounded-md object-cover" />
-                                        </TableCell>
-                                        <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{getCategoryName(product.category)}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {product.stock > 0 ? (
-                                                <Badge variant={product.stock < 5 ? 'destructive' : 'secondary'}>{product.stock} in stock</Badge>
-                                            ) : (
-                                                <Badge variant="destructive">Out of stock</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">BDT {product.price.toLocaleString()}</TableCell>
-                                        <TableCell>
-                                        <AlertDialog>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Toggle menu</span>
-                                                </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/admin/products/edit/${product.id}`}>Edit</Link>
-                                                </DropdownMenuItem>
-                                                <AlertDialogTrigger asChild>
-                                                    <DropdownMenuItem
-                                                        className="text-red-600"
-                                                        onSelect={(e) => e.preventDefault()}
-                                                    >
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </AlertDialogTrigger>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                             <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the product "{product.name}".
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
-                                                    Yes, delete
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                         </AlertDialog>
-                                        </TableCell>
+                                        </TableHead>
+                                        <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Stock</TableHead>
+                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">Actions</span>
+                                        </TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredProducts.map(product => (
+                                        <TableRow key={product.id} data-state={selectedProducts.includes(product.id) ? 'selected' : undefined}>
+                                            <TableCell>
+                                                <Checkbox 
+                                                    checked={selectedProducts.includes(product.id)}
+                                                    onCheckedChange={(checked) => handleSelectProduct(product.id, !!checked)}
+                                                    aria-label={`Select row for ${product.name}`}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                <Image src={product.image} alt={product.name} width={60} height={60} className="rounded-md object-cover" />
+                                            </TableCell>
+                                            <TableCell className="font-medium">{product.name}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{getCategoryName(product.category)}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {product.stock > 0 ? (
+                                                    <Badge variant={product.stock < 5 ? 'destructive' : 'secondary'}>{product.stock} in stock</Badge>
+                                                ) : (
+                                                    <Badge variant="destructive">Out of stock</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">BDT {product.price.toLocaleString()}</TableCell>
+                                            <TableCell>
+                                            <AlertDialog>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                    <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">Toggle menu</span>
+                                                    </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/admin/products/edit/${product.id}`}>Edit</Link>
+                                                    </DropdownMenuItem>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem
+                                                            className="text-red-600"
+                                                            onSelect={(e) => e.preventDefault()}
+                                                        >
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the product "{product.name}".
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                                        Yes, delete
+                                                    </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </main>

@@ -1,9 +1,15 @@
+
+
+'use client';
+
+import { useState } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Table,
@@ -13,24 +19,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, ShoppingBag, Users, Activity } from "lucide-react";
+import { DollarSign, ShoppingBag, Users, Activity, Printer, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { recentOrders as allOrders, products as allProducts } from "@/lib/data";
+import Link from "next/link";
 
-const recentOrders = [
-    { id: 'ORD001', customer: 'Sadia Islam', amount: '2,800', status: 'Delivered' },
-    { id: 'ORD002', customer: 'Karim Ahmed', amount: '1,200', status: 'Shipped' },
-    { id: 'ORD003', customer: 'Nusrat Jahan', amount: '4,500', status: 'Processing' },
-    { id: 'ORD004', customer: 'Rahim Sheikh', amount: '3,500', status: 'Pending' },
-    { id: 'ORD005', customer: 'Farhana Begum', amount: '800', status: 'Cancelled' },
-];
 
 export default function AdminDashboardPage() {
+
+  // Use the first 5 for "Recent Orders" card
+  const recentOrders = allOrders.slice(0, 5);
+
+  const getProductSlug = (productName: string) => {
+    const product = allProducts.find(p => p.name === productName);
+    if (!product) return '#';
+    return `/product/${product.name.toLowerCase().replace(/\s+/g, '-')}`;
+  };
+
   return (
-    <div className="flex flex-col">
-      <header className="flex h-16 items-center border-b bg-background px-6 shrink-0">
-          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-      </header>
+    
       <main className="flex-1 p-6">
+        <h1 className="text-xl font-semibold tracking-tight mb-6 hidden md:block">Dashboard</h1>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -62,51 +80,106 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-muted-foreground">Items need restocking</p>
             </CardContent>
           </Card>
-           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">New Inquiries</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">2</div>
-              <p className="text-xs text-muted-foreground">Waiting for a response</p>
-            </CardContent>
-          </Card>
+           <Link href="/admin/inquiries">
+            <Card className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">New Inquiries</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">2</div>
+                <p className="text-xs text-muted-foreground">Waiting for a response</p>
+                </CardContent>
+            </Card>
+           </Link>
         </div>
-        <Card className="mt-6">
-            <CardHeader>
-                <CardTitle>Recent Orders</CardTitle>
-                <CardDescription>A list of the last 5 orders.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead className="text-right">Amount (BDT)</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {recentOrders.map(order => (
-                             <TableRow key={order.id}>
-                                <TableCell className="font-medium">{order.id}</TableCell>
-                                <TableCell>{order.customer}</TableCell>
-                                <TableCell className="text-right">{order.amount}</TableCell>
-                                <TableCell>
-                                    <Badge variant={
-                                        order.status === 'Delivered' ? 'default' :
-                                        order.status === 'Cancelled' ? 'destructive' : 'secondary'
-                                    }>{order.status}</Badge>
-                                </TableCell>
+        <div className="grid gap-6 mt-6 lg:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Recent Orders</CardTitle>
+                    <CardDescription>A list of the last 5 orders.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Order ID</TableHead>
+                                <TableHead>Customer</TableHead>
+                                <TableHead className="text-right">Amount (BDT)</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                        </TableHeader>
+                        <TableBody>
+                            {recentOrders.map(order => (
+                                <Dialog key={order.id}>
+                                    <TableRow>
+                                        <TableCell>
+                                             <DialogTrigger asChild>
+                                                <Button variant="link" className="font-medium px-0">
+                                                    {order.id}
+                                                </Button>
+                                             </DialogTrigger>
+                                        </TableCell>
+                                        <TableCell>{order.customer}</TableCell>
+                                        <TableCell className="text-right">{order.amount}</TableCell>
+                                    </TableRow>
+                                     <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Order {order.id}</DialogTitle>
+                                            <DialogDescription>
+                                                Products ordered by {order.customer}.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            {order.products.map((product, index) => (
+                                                <div key={index} className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="font-medium">
+                                                            <Link href={getProductSlug(product.name)} className="hover:underline" target="_blank">
+                                                                {product.name}
+                                                            </Link>
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">Quantity: {product.quantity}</p>
+                                                    </div>
+                                                    <p className="text-sm font-medium">BDT {(product.price * product.quantity).toLocaleString()}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                         <div className="flex justify-between items-center font-bold border-t pt-4">
+                                            <p>Total</p>
+                                            <p>BDT {order.amount}</p>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button asChild>
+                                                <Link href={`/admin/invoice/${order.id}`}>
+                                                    <Printer className="mr-2 h-4 w-4" />
+                                                    Print Invoice
+                                                </Link>
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <div className="text-sm mt-4 text-center">
+                        <Link href="/admin/orders" className="text-primary hover:underline">
+                            View All Orders
+                        </Link>
+                    </div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Stock Alerts</CardTitle>
+                    <CardDescription>Items that are running low on stock.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {/* Placeholder for stock alerts */}
+                    <p className="text-muted-foreground">No low stock items at the moment.</p>
+                </CardContent>
+            </Card>
+        </div>
       </main>
-    </div>
+   
   );
 }
