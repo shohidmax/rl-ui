@@ -26,6 +26,13 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 const recentOrders = [
     { id: 'ORD001', customer: 'Sadia Islam', amount: '2,800', status: 'Delivered', products: [{ name: 'Classic Cotton Three-Piece', quantity: 1, price: 2800 }] },
@@ -105,10 +112,18 @@ export default function AdminDashboardPage() {
                                 <TableCell className="font-medium">{order.id}</TableCell>
                                 <TableCell>{order.customer}</TableCell>
                                 <TableCell>
-                                    <Badge variant={
-                                        order.status === 'Delivered' ? 'default' :
-                                        order.status === 'Cancelled' ? 'destructive' : 'secondary'
-                                    }>{order.status}</Badge>
+                                    <Select defaultValue={order.status}>
+                                        <SelectTrigger className="w-[120px]">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Pending">Pending</SelectItem>
+                                            <SelectItem value="Processing">Processing</SelectItem>
+                                            <SelectItem value="Shipped">Shipped</SelectItem>
+                                            <SelectItem value="Delivered">Delivered</SelectItem>
+                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </TableCell>
                                 <TableCell className="text-right">
                                      <Dialog>
