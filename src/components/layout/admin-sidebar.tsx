@@ -4,20 +4,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
-import { LayoutDashboard, ShoppingCart, Package, Users, Home } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, Pencil, Home } from "lucide-react";
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: <LayoutDashboard /> },
   { href: "/admin/products", label: "Products", icon: <Package /> },
   { href: "/admin/orders", label: "Orders", icon: <ShoppingCart /> },
   { href: "/admin/customers", label: "Customers", icon: <Users /> },
+  { href: "/admin/content", label: "Content", icon: <Pencil /> },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r bg-background">
+    <aside className="w-64 flex-shrink-0 border-r bg-background hidden md:block">
       <div className="flex h-full flex-col gap-2">
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
