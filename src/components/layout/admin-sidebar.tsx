@@ -35,7 +35,7 @@ export function AdminSidebar() {
         <SidebarMenu>
           {adminNavItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href} legacyBehavior passHref>
+              <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={pathname === item.href}
                   icon={item.icon}
@@ -46,7 +46,7 @@ export function AdminSidebar() {
             </SidebarMenuItem>
           ))}
           <SidebarMenuItem>
-             <Link href="/" legacyBehavior passHref>
+             <Link href="/">
               <SidebarMenuButton icon={<Home />}>
                 Storefront
               </SidebarMenuButton>
