@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Plus, Minus } from 'lucide-react';
 import { bangladeshDistricts } from '@/lib/data';
+import { sendEmail } from '@/ai/flows/send-email-flow';
 
 
 const formSchema = z.object({
@@ -78,13 +79,42 @@ export default function CheckoutPage() {
   
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log({
+    const orderDetails = {
         shippingInfo: values,
         orderItems: cart,
         subtotal,
         shippingCharge,
         total
-    });
+    };
+
+    console.log("Order Submitted:", orderDetails);
+
+    // Send email notification
+    try {
+        const emailHtml = `
+            <h1>New Order Received!</h1>
+            <p><strong>Customer:</strong> ${values.fullName}</p>
+            <p><strong>Phone:</strong> ${values.phoneNumber}</p>
+            <p><strong>Address:</strong> ${values.fullAddress}, ${values.city}</p>
+            <h2>Order Items:</h2>
+            <ul>
+                ${cart.map(item => `<li>${item.product.name} (x${item.quantity}) - BDT ${item.product.price * item.quantity}</li>`).join('')}
+            </ul>
+            <h3>Subtotal: BDT ${subtotal.toLocaleString()}</h3>
+            <h3>Shipping: BDT ${shippingCharge?.toLocaleString() ?? 'N/A'}</h3>
+            <h2>Total: BDT ${total.toLocaleString()}</h2>
+        `;
+        
+        await sendEmail({
+            to: 'rashedul.afl@gmail.com',
+            subject: `New Order from ${values.fullName}`,
+            html: emailHtml
+        });
+    } catch (error) {
+        console.error("Failed to send order notification email:", error);
+        // Optionally, show a message to the admin/user that the notification failed
+    }
+
     toast({
       title: 'Order Placed!',
       description: 'Thank you for your purchase. We will contact you shortly.',

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { sendEmail } from "@/ai/flows/send-email-flow";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -36,8 +37,27 @@ export function ContactForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you would send this data to a server
-    console.log(values);
+    console.log("Contact Form Submitted:", values);
+
+    // Send email notification
+    try {
+      const emailHtml = `
+        <h1>New Contact Inquiry!</h1>
+        <p><strong>Name:</strong> ${values.name}</p>
+        <p><strong>Phone:</strong> ${values.phone}</p>
+        <h2>Message:</h2>
+        <p>${values.message}</p>
+      `;
+
+      await sendEmail({
+        to: 'rashedul.afl@gmail.com',
+        subject: `New Inquiry from ${values.name}`,
+        html: emailHtml
+      });
+    } catch (error) {
+      console.error("Failed to send inquiry notification email:", error);
+    }
+    
     toast({
       title: "Message Sent!",
       description: "Thank you for contacting us. We will get back to you shortly.",
@@ -46,7 +66,7 @@ export function ContactForm() {
   }
 
   return (
-    <section id="contact" className="bg-background pt-8 pb-16 md:pt-12 md:pb-24 scroll-mt-20">
+    <section id="contact" className="bg-background pt-8 pb-16 md:pt-12 md:pb-12 scroll-mt-20">
       <div className="container max-w-2xl">
         <Card>
             <CardHeader className="text-center">
