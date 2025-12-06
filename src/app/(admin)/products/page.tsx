@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -23,24 +24,26 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
-
-const products = [
-    { id: '1', name: 'Elegant Floral Three-Piece', price: 3200, stock: true, category: 'Three-Piece', image: 'https://picsum.photos/seed/suit1/40/40' },
-    { id: '2', name: 'Modern Silk Three-Piece', price: 4500, stock: true, category: 'Three-Piece', image: 'https://picsum.photos/seed/suit2/40/40' },
-    { id: '4', name: 'Premium Silk Hijab', price: 1200, stock: false, category: 'Hijab', image: 'https://picsum.photos/seed/hijab1/40/40' },
-    { id: '7', name: 'Luxury King Size Bedsheet', price: 5500, stock: true, category: 'Bedsheet', image: 'https://picsum.photos/seed/bedsheet1/40/40' },
-];
+import Link from "next/link";
+import { products, categories } from "@/lib/data";
 
 export default function AdminProductsPage() {
+    
+    const getCategoryName = (categoryId: string) => {
+        const category = categories.find(c => c.id === categoryId);
+        return category ? category.name : 'N/A';
+    }
+
     return (
         <div className="flex flex-col">
             <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0">
                 <h1 className="text-xl font-semibold tracking-tight">Products</h1>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Product
+                <Button asChild>
+                    <Link href="/admin/products/new">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Product
+                    </Link>
                 </Button>
             </header>
             <main className="flex-1 p-6">
@@ -56,7 +59,7 @@ export default function AdminProductsPage() {
                                     <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Category</TableHead>
-                                    <TableHead>In Stock</TableHead>
+                                    <TableHead>Stock</TableHead>
                                     <TableHead className="text-right">Price</TableHead>
                                     <TableHead>
                                         <span className="sr-only">Actions</span>
@@ -71,10 +74,14 @@ export default function AdminProductsPage() {
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>
-                                            <Badge variant="outline">{product.category}</Badge>
+                                            <Badge variant="outline">{getCategoryName(product.category)}</Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Switch checked={product.stock} aria-label="In Stock" />
+                                            {product.stock > 0 ? (
+                                                <Badge variant="secondary">{product.stock} in stock</Badge>
+                                            ) : (
+                                                <Badge variant="destructive">Out of stock</Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right">BDT {product.price.toLocaleString()}</TableCell>
                                         <TableCell>
