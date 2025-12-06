@@ -1,10 +1,9 @@
 'use client';
-import { use, useEffect } from 'react';
+import { use } from 'react';
 import { notFound } from 'next/navigation';
 import { recentOrders } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 
 type InvoicePageProps = {
   params: Promise<{ id: string }>;
@@ -21,6 +20,8 @@ export default function InvoicePage({ params }: InvoicePageProps) {
   }
 
   const subtotal = order.products.reduce((acc, p) => acc + p.price * p.quantity, 0);
+  const shipping = parseInt(order.amount.replace(/,/g, ''), 10) - subtotal;
+
 
   return (
     <div className="bg-white text-black min-h-screen font-mono">
@@ -86,11 +87,11 @@ export default function InvoicePage({ params }: InvoicePageProps) {
             </div>
              <div className="flex justify-between">
                 <span>Shipping</span>
-                <span className="font-medium">{(parseInt(order.amount) - subtotal).toLocaleString()}</span>
+                <span className="font-medium">{shipping > 0 ? shipping.toLocaleString() : 'Free'}</span>
             </div>
             <div className="flex justify-between font-bold text-sm mt-1">
                 <span>Total</span>
-                <span>BDT {parseInt(order.amount).toLocaleString()}</span>
+                <span>BDT {parseInt(order.amount.replace(/,/g, '')).toLocaleString()}</span>
             </div>
         </section>
 
