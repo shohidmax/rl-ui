@@ -12,12 +12,12 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <div className="flex min-h-screen w-full">
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <div className="hidden border-r bg-background md:block">
             <AdminSidebar />
         </div>
-        <div className="flex flex-col flex-1">
-           <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <div className="flex flex-col">
+           <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button
@@ -29,13 +29,11 @@ export default function AdminLayout({
                         <span className="sr-only">Toggle navigation menu</span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="p-0">
+                    <SheetContent side="left" className="flex flex-col p-0">
                         <AdminSidebar isMobile={true} />
                     </SheetContent>
                 </Sheet>
-                <div className="flex-1">
-                  <h1 className="font-semibold text-lg md:hidden">Admin Panel</h1>
-                </div>
+                <div className="flex-1" />
                 <Link href="/" passHref>
                     <Button variant="outline" size="icon" asChild>
                       <Link href="/">
