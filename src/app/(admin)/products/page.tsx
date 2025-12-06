@@ -1,4 +1,6 @@
+'use client';
 
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,16 +26,29 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Image from "next/image";
 import Link from "next/link";
 import { products, categories } from "@/lib/data";
 
 export default function AdminProductsPage() {
     
+    const [selectedCategory, setSelectedCategory] = useState('all');
+
     const getCategoryName = (categoryId: string) => {
         const category = categories.find(c => c.id === categoryId);
         return category ? category.name : 'N/A';
     }
+
+    const filteredProducts = selectedCategory === 'all'
+        ? products
+        : products.filter(p => p.category === selectedCategory);
 
     return (
         <div className="flex flex-col">
@@ -49,8 +64,27 @@ export default function AdminProductsPage() {
             <main className="flex-1 p-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Product Catalog</CardTitle>
-                        <CardDescription>Manage your products and view their sales performance.</CardDescription>
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                            <div>
+                                <CardTitle>Product Catalog</CardTitle>
+                                <CardDescription>Manage your products and view their sales performance.</CardDescription>
+                            </div>
+                            <div className="w-full sm:w-auto">
+                                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                    <SelectTrigger className="w-full sm:w-[180px]">
+                                        <SelectValue placeholder="Filter by category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Products</SelectItem>
+                                        {categories.map(category => (
+                                            <SelectItem key={category.id} value={category.id}>
+                                                {category.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -67,7 +101,7 @@ export default function AdminProductsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {products.map(product => (
+                                {filteredProducts.map(product => (
                                      <TableRow key={product.id}>
                                         <TableCell className="hidden sm:table-cell">
                                             <Image src={product.image} alt={product.name} width={60} height={60} className="rounded-md object-cover" />
