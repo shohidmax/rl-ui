@@ -96,6 +96,7 @@ export default function AdminDashboardPage() {
                         <TableRow>
                             <TableHead>Order ID</TableHead>
                             <TableHead>Customer</TableHead>
+                            <TableHead>Phone</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Order Details</TableHead>
                         </TableRow>
@@ -105,6 +106,7 @@ export default function AdminDashboardPage() {
                              <TableRow key={order.id}>
                                 <TableCell className="font-medium">{order.id}</TableCell>
                                 <TableCell>{order.customer}</TableCell>
+                                <TableCell>{order.phone}</TableCell>
                                 <TableCell>
                                     <Select defaultValue={order.status}>
                                         <SelectTrigger className="w-[120px]">
