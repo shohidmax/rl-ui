@@ -88,6 +88,14 @@ export default function AdminNewProductPage() {
                       />
                     </div>
                     <div className="grid gap-3">
+                      <Label htmlFor="highlights">Product Highlights</Label>
+                      <Textarea
+                        id="highlights"
+                        placeholder="Enter key features, one per line..."
+                        className="min-h-24"
+                      />
+                    </div>
+                    <div className="grid gap-3">
                       <Label htmlFor="description">Description</Label>
                       <Textarea
                         id="description"
