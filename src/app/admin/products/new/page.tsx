@@ -24,10 +24,27 @@ import { categories } from '@/lib/data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { PlusCircle, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function AdminNewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [galleryImages, setGalleryImages] = useState(['']);
+
+  const handleAddGalleryImage = () => {
+    setGalleryImages([...galleryImages, '']);
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== index));
+  };
+
+  const handleGalleryImageChange = (index: number, value: string) => {
+    const newImages = [...galleryImages];
+    newImages[index] = value;
+    setGalleryImages(newImages);
+  }
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,6 +117,36 @@ export default function AdminNewProductPage() {
                     </div>
                 </CardContent>
               </Card>
+               <Card>
+                <CardHeader>
+                  <CardTitle>Product Gallery</CardTitle>
+                   <CardDescription>Add additional images for the product.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {galleryImages.map((image, index) => (
+                     <div key={index} className="flex items-center gap-2">
+                        <Input 
+                            type="text" 
+                            placeholder="https://..."
+                            value={image}
+                            onChange={(e) => handleGalleryImageChange(index, e.target.value)}
+                        />
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleRemoveGalleryImage(index)}
+                            disabled={galleryImages.length === 1}
+                        >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                    </div>
+                  ))}
+                   <Button type="button" variant="outline" size="sm" onClick={handleAddGalleryImage}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Image
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
             <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
               <Card>
@@ -132,6 +179,7 @@ export default function AdminNewProductPage() {
               <Card className="overflow-hidden">
                 <CardHeader>
                   <CardTitle>Product Image</CardTitle>
+                  <CardDescription>This is the main image for the product.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-2">
