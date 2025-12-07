@@ -31,37 +31,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { recentOrders, type Order } from '@/lib/data';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>(recentOrders);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   const filteredOrders = useMemo(() => {
     if (statusFilter === 'all') return orders;
     return orders.filter(order => order.status === statusFilter);
   }, [orders, statusFilter]);
-
-  const getStatusVariant = (status: Order['status']) => {
-    switch (status) {
-        case 'Delivered':
-            return 'default';
-        case 'Shipped':
-            return 'secondary';
-        case 'Processing':
-            return 'secondary';
-        case 'Pending':
-            return 'outline';
-        case 'Cancelled':
-            return 'destructive';
-        default:
-            return 'outline';
-    }
-  }
 
   const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
     setOrders(currentOrders => 
@@ -156,7 +148,9 @@ export default function AdminOrdersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setSelectedOrder(order)}>
+                            View Details
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600">
                             Delete
                           </DropdownMenuItem>
@@ -170,6 +164,52 @@ export default function AdminOrdersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+          <DialogContent className="sm:max-w-lg">
+              {selectedOrder && (
+                  <>
+                      <DialogHeader>
+                          <DialogTitle>Order Details: {selectedOrder.id}</DialogTitle>
+                          <DialogDescription>
+                              Full details for the order placed on {selectedOrder.date}.
+                          </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                              <h4 className="font-semibold">Customer Information</h4>
+                              <div className="text-sm text-muted-foreground">
+                                  <p><strong>Name:</strong> {selectedOrder.customer}</p>
+                                  <p><strong>Phone:</strong> {selectedOrder.phone}</p>
+                                  <p><strong>Address:</strong> {selectedOrder.address}</p>
+                              </div>
+                          </div>
+                          <Separator />
+                          <div className="space-y-2">
+                              <h4 className="font-semibold">Ordered Items</h4>
+                               <ul className="space-y-2 text-sm">
+                                  {selectedOrder.products.map((product, index) => (
+                                      <li key={index} className="flex justify-between items-center">
+                                          <span>{product.name} (x{product.quantity})</span>
+                                          <span className="font-medium">BDT {(product.price * product.quantity).toLocaleString()}</span>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between font-bold text-base">
+                              <span>Total Amount</span>
+                              <span>BDT {parseInt(selectedOrder.amount).toLocaleString()}</span>
+                          </div>
+                      </div>
+                      <DialogFooter>
+                          <Button variant="outline" onClick={() => setSelectedOrder(null)}>Close</Button>
+                      </DialogFooter>
+                  </>
+              )}
+          </DialogContent>
+      </Dialog>
     </>
   );
 }
