@@ -4,13 +4,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { ReactNode } from "react";
-import { LayoutDashboard, ShoppingCart, Package, Users, Pencil, Home, Menu, Bot, Shapes } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, Pencil, Home, Menu, Bot, Shapes, AreaChart } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar, SidebarTrigger, SidebarClose } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: <LayoutDashboard /> },
+  { href: "/admin/analytics", label: "Analytics", icon: <AreaChart /> },
   { href: "/admin/products", label: "Products", icon: <Package /> },
   { href: "/admin/orders", label: "Orders", icon: <ShoppingCart /> },
   { href: "/admin/categories", label: "Categories", icon: <Shapes /> },
