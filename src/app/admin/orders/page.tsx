@@ -246,7 +246,6 @@ export default function AdminOrdersPage() {
                   <TableHead className="hidden sm:table-cell">Customer</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -272,9 +271,6 @@ export default function AdminOrdersPage() {
                              <SelectItem value="Cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        BDT {parseInt(order.amount).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
