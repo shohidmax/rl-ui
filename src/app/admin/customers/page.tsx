@@ -18,7 +18,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { recentOrders } from '@/lib/data';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,14 +60,6 @@ export default function AdminCustomersPage() {
       (a, b) => b.totalSpent - a.totalSpent
     );
   }, []);
-  
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -100,14 +91,7 @@ export default function AdminCustomersPage() {
                 {customers.map((customer) => (
                   <TableRow key={`${customer.name}-${customer.phone}`}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback>
-                            {getInitials(customer.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="font-medium">{customer.name}</div>
-                      </div>
+                      <div className="font-medium">{customer.name}</div>
                     </TableCell>
                     <TableCell>{customer.phone}</TableCell>
                     <TableCell className="text-center">
