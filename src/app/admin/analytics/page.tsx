@@ -55,22 +55,23 @@ const trafficSourcesData = [
 ];
 
 const allTopPagesData = [
-  { page: '/', name: 'Homepage', views: 12500, unique: 8900, avgTime: '2m 15s', source: 'Facebook' },
-  { page: '/product/elegant-floral-three-piece', name: 'Elegant Floral Three-Piece', views: 9800, unique: 7200, avgTime: '3m 45s', source: 'Google' },
-  { page: '/checkout', name: 'Checkout', views: 4500, unique: 3100, avgTime: '1m 30s', source: 'Direct' },
-  { page: '/category/hijab', name: 'Hijab Category', views: 7600, unique: 5400, avgTime: '2m 05s', source: 'Instagram' },
-  { page: '/product/classic-cotton-three-piece', name: 'Classic Cotton Three-Piece', views: 6500, unique: 4800, avgTime: '3m 10s', source: 'Facebook' },
-  { page: '/', name: 'Homepage', views: 8000, unique: 6000, avgTime: '2m 00s', source: 'Google' },
-  { page: '/category/bedsheet', name: 'Bedsheet Category', views: 4200, unique: 3000, avgTime: '1m 50s', source: 'Others' },
+  { page: '/', name: 'Homepage', views: 12500, unique: 8900, avgTime: '2m 15s', source: 'Facebook', location: 'Dhaka' },
+  { page: '/product/elegant-floral-three-piece', name: 'Elegant Floral Three-Piece', views: 9800, unique: 7200, avgTime: '3m 45s', source: 'Google', location: 'Chittagong' },
+  { page: '/checkout', name: 'Checkout', views: 4500, unique: 3100, avgTime: '1m 30s', source: 'Direct', location: 'Dhaka' },
+  { page: '/category/hijab', name: 'Hijab Category', views: 7600, unique: 5400, avgTime: '2m 05s', source: 'Instagram', location: 'Sylhet' },
+  { page: '/product/classic-cotton-three-piece', name: 'Classic Cotton Three-Piece', views: 6500, unique: 4800, avgTime: '3m 10s', source: 'Facebook', location: 'Dhaka' },
+  { page: '/', name: 'Homepage', views: 8000, unique: 6000, avgTime: '2m 00s', source: 'Google', location: 'New York' },
+  { page: '/category/bedsheet', name: 'Bedsheet Category', views: 4200, unique: 3000, avgTime: '1m 50s', source: 'Others', location: 'London' },
+  { page: '/product/premium-silk-saree', name: 'Premium Silk Saree', views: 3200, unique: 2100, avgTime: '4m 10s', source: 'Facebook', location: 'Chittagong' },
 ];
 
 
 const topLocationsData = [
-    { location: 'Dhaka', visitors: '45%', flag: '🇧🇩' },
-    { location: 'Chittagong', visitors: '25%', flag: '🇧🇩' },
-    { location: 'Sylhet', visitors: '15%', flag: '🇧🇩' },
-    { location: 'New York', visitors: '5%', flag: '🇺🇸' },
-    { location: 'London', visitors: '4%', flag: '🇬🇧' },
+  { location: 'Dhaka', visitors: '45%', flag: '🇧🇩' },
+  { location: 'Chittagong', visitors: '25%', flag: '🇧🇩' },
+  { location: 'Sylhet', visitors: '15%', flag: '🇧🇩' },
+  { location: 'New York', visitors: '5%', flag: '🇺🇸' },
+  { location: 'London', visitors: '4%', flag: '🇬🇧' },
 ];
 
 
@@ -111,25 +112,37 @@ const sourcesChartConfig = {
 export default function AdminAnalyticsPage() {
   const [liveUsers, setLiveUsers] = useState(0);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const trafficData = useMemo(() => generateLast30DaysData(), []);
 
   const topPagesData = useMemo(() => {
-    if (!selectedSource) {
-        // A simple aggregation for the "All" view
-        const pageMap = new Map();
-        allTopPagesData.forEach(p => {
-            if (pageMap.has(p.page)) {
-                const existing = pageMap.get(p.page);
-                existing.views += p.views;
-                existing.unique += p.unique;
-            } else {
-                pageMap.set(p.page, { ...p });
-            }
-        });
-        return Array.from(pageMap.values()).sort((a,b) => b.views - a.views).slice(0, 5);
+    let filtered = allTopPagesData;
+
+    if (selectedSource) {
+      filtered = filtered.filter(p => p.source === selectedSource);
     }
-    return allTopPagesData.filter(p => p.source === selectedSource);
-  }, [selectedSource]);
+
+    if (selectedLocation) {
+      filtered = filtered.filter(p => p.location === selectedLocation);
+    }
+
+    if (!selectedSource && !selectedLocation) {
+      // A simple aggregation for the "All" view
+      const pageMap = new Map();
+      allTopPagesData.forEach(p => {
+        if (pageMap.has(p.page)) {
+          const existing = pageMap.get(p.page);
+          existing.views += p.views;
+          existing.unique += p.unique;
+        } else {
+          pageMap.set(p.page, { ...p });
+        }
+      });
+      return Array.from(pageMap.values()).sort((a, b) => b.views - a.views).slice(0, 5);
+    }
+
+    return filtered.slice(0, 5);
+  }, [selectedSource, selectedLocation]);
 
   useState(() => {
     const updateLiveUsers = () => {
@@ -143,7 +156,7 @@ export default function AdminAnalyticsPage() {
     updateLiveUsers();
     return () => clearInterval(interval);
   });
-  
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -169,7 +182,7 @@ export default function AdminAnalyticsPage() {
             <p className="text-xs text-muted-foreground">+12.1% from last month</p>
           </CardContent>
         </Card>
-         <Card>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -186,11 +199,11 @@ export default function AdminAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold flex items-center">
-                <span className="relative flex h-3 w-3 mr-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                {liveUsers}
+              <span className="relative flex h-3 w-3 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              {liveUsers}
             </div>
             <p className="text-xs text-muted-foreground">Users currently on site</p>
           </CardContent>
@@ -225,7 +238,7 @@ export default function AdminAnalyticsPage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  />
+                />
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent indicator="dot" />}
@@ -242,8 +255,8 @@ export default function AdminAnalyticsPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        
-         <Card className="lg:col-span-3">
+
+        <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Traffic Sources</CardTitle>
@@ -252,9 +265,9 @@ export default function AdminAnalyticsPage() {
             {selectedSource && <Button variant="ghost" size="sm" onClick={() => setSelectedSource(null)}>Show All</Button>}
           </CardHeader>
           <CardContent className="flex-1 pb-0">
-             <ChartContainer
-                config={sourcesChartConfig}
-                className="mx-auto aspect-square h-[250px]"
+            <ChartContainer
+              config={sourcesChartConfig}
+              className="mx-auto aspect-square h-[250px]"
             >
               <PieChart>
                 <ChartTooltip
@@ -270,14 +283,14 @@ export default function AdminAnalyticsPage() {
                 >
                 </Pie>
                 <ChartLegend
-                    content={
-                        <ChartLegendContent 
-                            nameKey="source" 
-                            className="[&>*]:cursor-pointer"
-                            onClick={(item) => setSelectedSource(item.payload?.source as string)}
-                        />
-                    }
-                    className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+                  content={
+                    <ChartLegendContent
+                      nameKey="source"
+                      className="[&>*]:cursor-pointer"
+                      onClick={(item) => setSelectedSource(item.payload?.source as string)}
+                    />
+                  }
+                  className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
                 />
               </PieChart>
             </ChartContainer>
@@ -285,15 +298,17 @@ export default function AdminAnalyticsPage() {
         </Card>
       </div>
 
-       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Most Visited Pages</CardTitle>
             <CardDescription>
-                {selectedSource 
-                    ? `Your most popular pages from ${selectedSource}.` 
-                    : 'Your most popular pages by views.'
-                }
+              {selectedSource
+                ? `Your most popular pages from ${selectedSource}.`
+                : selectedLocation
+                  ? `Your most popular pages from ${selectedLocation}.`
+                  : 'Your most popular pages by views.'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -307,39 +322,55 @@ export default function AdminAnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topPagesData.map((page) => (
-                  <TableRow key={page.page + (page.source || '')}>
-                    <TableCell>
-                      <Link href={page.page} className="font-medium hover:underline flex items-center gap-2" target="_blank">
-                        {page.name} <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                      </Link>
+                {topPagesData.length > 0 ? (
+                  topPagesData.map((page) => (
+                    <TableRow key={page.page + (page.source || '') + (page.location || '')}>
+                      <TableCell>
+                        <Link href={page.page} className="font-medium hover:underline flex items-center gap-2" target="_blank">
+                          {page.name} <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right">{page.views.toLocaleString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-right">{page.unique.toLocaleString()}</TableCell>
+                      <TableCell className="hidden md:table-cell text-right">{page.avgTime}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">
+                      No data available for this selection.
                     </TableCell>
-                    <TableCell className="text-right">{page.views.toLocaleString()}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-right">{page.unique.toLocaleString()}</TableCell>
-                    <TableCell className="hidden md:table-cell text-right">{page.avgTime}</TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-        
+
         <Card>
-            <CardHeader>
-                <CardTitle>Top Locations</CardTitle>
-                <CardDescription>Visitor distribution by city.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <div className="space-y-4">
-                    {topLocationsData.map((loc) => (
-                        <div key={loc.location} className="flex items-center">
-                            <span className="text-xl mr-3">{loc.flag}</span>
-                            <span className="font-medium">{loc.location}</span>
-                            <Badge variant="secondary" className="ml-auto">{loc.visitors}</Badge>
-                        </div>
-                    ))}
-                 </div>
-            </CardContent>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Top Locations</CardTitle>
+              <CardDescription>Visitor distribution by city.</CardDescription>
+            </div>
+            {selectedLocation && <Button variant="ghost" size="sm" onClick={() => setSelectedLocation(null)}>Show All</Button>}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topLocationsData.map((loc) => (
+                <div
+                  key={loc.location}
+                  className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${selectedLocation === loc.location ? 'bg-muted' : 'hover:bg-muted/50'
+                    }`}
+                  onClick={() => setSelectedLocation(selectedLocation === loc.location ? null : loc.location)}
+                >
+                  <span className="text-xl mr-3">{loc.flag}</span>
+                  <span className="font-medium">{loc.location}</span>
+                  <Badge variant="secondary" className="ml-auto">{loc.visitors}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
