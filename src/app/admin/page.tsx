@@ -120,17 +120,17 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
         <Card>
-         <Link href="/admin/inquiries">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Inquiries</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.newInquiries}</div>
-            <p className="text-xs text-muted-foreground">
-              Unread messages from customers
-            </p>
-          </CardContent>
+          <Link href="/admin/inquiries">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">New Inquiries</CardTitle>
+              <Mail className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.newInquiries}</div>
+              <p className="text-xs text-muted-foreground">
+                Unread messages from customers
+              </p>
+            </CardContent>
           </Link>
         </Card>
       </div>
@@ -138,10 +138,10 @@ export default function AdminDashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="grid gap-2">
-                <CardTitle>Recent Orders</CardTitle>
-                <CardDescription>
+              <CardTitle>Recent Orders</CardTitle>
+              <CardDescription>
                 A quick look at the latest customer orders.
-                </CardDescription>
+              </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
               <Link href="/admin/orders">
@@ -172,8 +172,8 @@ export default function AdminDashboardPage() {
                             order.status === 'Delivered'
                               ? 'default'
                               : order.status === 'Cancelled'
-                              ? 'destructive'
-                              : 'secondary'
+                                ? 'destructive'
+                                : 'secondary'
                           }
                         >
                           {order.status}
@@ -206,7 +206,13 @@ export default function AdminDashboardPage() {
                 {lowStockProducts.length > 0 ? (
                   lowStockProducts.map((product) => (
                     <li key={product.id} className="flex items-center justify-between text-sm">
-                      <span>{product.name}</span>
+                      <Link
+                        href={`/product/${product.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="hover:underline"
+                        target="_blank"
+                      >
+                        <span>{product.name}</span>
+                      </Link>
                       <Badge variant="secondary">Qty: {product.stock}</Badge>
                     </li>
                   ))
@@ -221,11 +227,17 @@ export default function AdminDashboardPage() {
                 <PackageX className="h-5 w-5 text-red-500" />
                 <h3 className="font-semibold">Out of Stock Items</h3>
               </div>
-               <ul className="space-y-2">
+              <ul className="space-y-2">
                 {outOfStockProducts.length > 0 ? (
                   outOfStockProducts.map((product) => (
-                     <li key={product.id} className="flex items-center justify-between text-sm">
-                      <span>{product.name}</span>
+                    <li key={product.id} className="flex items-center justify-between text-sm">
+                      <Link
+                        href={`/product/${product.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="hover:underline"
+                        target="_blank"
+                      >
+                        <span>{product.name}</span>
+                      </Link>
                       <Badge variant="destructive">Out of Stock</Badge>
                     </li>
                   ))

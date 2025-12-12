@@ -63,7 +63,7 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-  
+
   useEffect(() => {
     // Initialize orders on the client side to avoid hydration errors
     setOrders(recentOrders);
@@ -72,19 +72,19 @@ export default function AdminOrdersPage() {
   const filteredOrders = useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
     return orders.filter(order => {
-        const statusMatch = statusFilter === 'all' || order.status === statusFilter;
-        const searchMatch = !lowercasedQuery ||
-            order.id.toLowerCase().includes(lowercasedQuery) ||
-            order.phone.replace(/[\s-]/g, '').includes(lowercasedQuery.replace(/[\s-]/g, ''));
-        return statusMatch && searchMatch;
+      const statusMatch = statusFilter === 'all' || order.status === statusFilter;
+      const searchMatch = !lowercasedQuery ||
+        order.id.toLowerCase().includes(lowercasedQuery) ||
+        order.phone.replace(/[\s-]/g, '').includes(lowercasedQuery.replace(/[\s-]/g, ''));
+      return statusMatch && searchMatch;
     });
   }, [orders, statusFilter, searchQuery]);
 
   const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    setOrders(currentOrders => 
-        currentOrders.map(o => 
-            o.id === orderId ? { ...o, status: newStatus } : o
-        )
+    setOrders(currentOrders =>
+      currentOrders.map(o =>
+        o.id === orderId ? { ...o, status: newStatus } : o
+      )
     );
   };
 
@@ -92,11 +92,15 @@ export default function AdminOrdersPage() {
     setOrders(currentOrders => currentOrders.filter(o => o.id !== orderId));
     setOrderToDelete(null);
   };
-  
+
   const handlePrintInvoice = (order: Order) => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      const totalAmount = parseInt(order.amount).toLocaleString();
+      const isInsideDhaka = order.address.toLowerCase().includes('dhaka');
+      const shippingCharge = isInsideDhaka ? 60 : 120;
+      const subTotal = parseInt(order.amount);
+      const grandTotal = (subTotal + shippingCharge).toLocaleString();
+      const formattedSubTotal = subTotal.toLocaleString();
       const orderDate = new Date(order.date).toLocaleDateString();
 
       const invoiceHtml = `
@@ -162,15 +166,15 @@ export default function AdminOrdersPage() {
                 <tbody>
                     <tr>
                         <td>Subtotal:</td>
-                        <td class="text-right">${totalAmount}</td>
+                        <td class="text-right">${formattedSubTotal}</td>
                     </tr>
                     <tr>
                         <td>Shipping:</td>
-                        <td class="text-right">0</td>
+                        <td class="text-right">${shippingCharge}</td>
                     </tr>
                      <tr>
                         <td><strong>Total:</strong></td>
-                        <td class="text-right"><strong>BDT ${totalAmount}</strong></td>
+                        <td class="text-right"><strong>BDT ${grandTotal}</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -203,38 +207,38 @@ export default function AdminOrdersPage() {
             View and manage all customer orders.
           </CardDescription>
           <div className="mt-4 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-               <div className="grid gap-2 md:col-span-2">
-                 <Label htmlFor="search">Search Orders</Label>
-                  <div className="relative">
-                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                     <Input
-                        id="search"
-                        placeholder="Search by Order ID or Phone Number..."
-                        className="pl-10"
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                     />
-                  </div>
-               </div>
-               <div className="grid gap-2">
-                  <Label htmlFor="status-filter">Filter by Status</Label>
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
-                    <SelectTrigger id="status-filter" aria-label="Select status">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Processing">Processing</SelectItem>
-                      <SelectItem value="Shipped">Shipped</SelectItem>
-                      <SelectItem value="Delivered">Delivered</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="grid gap-2 md:col-span-2">
+              <Label htmlFor="search">Search Orders</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by Order ID or Phone Number..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status-filter">Filter by Status</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger id="status-filter" aria-label="Select status">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Processing">Processing</SelectItem>
+                  <SelectItem value="Shipped">Shipped</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -261,14 +265,14 @@ export default function AdminOrdersPage() {
                       <TableCell>
                         <Select value={order.status} onValueChange={(newStatus: Order['status']) => handleStatusChange(order.id, newStatus)}>
                           <SelectTrigger className="w-32">
-                             <SelectValue placeholder="Update status" />
+                            <SelectValue placeholder="Update status" />
                           </SelectTrigger>
                           <SelectContent>
-                             <SelectItem value="Pending">Pending</SelectItem>
-                             <SelectItem value="Processing">Processing</SelectItem>
-                             <SelectItem value="Shipped">Shipped</SelectItem>
-                             <SelectItem value="Delivered">Delivered</SelectItem>
-                             <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Processing">Processing</SelectItem>
+                            <SelectItem value="Shipped">Shipped</SelectItem>
+                            <SelectItem value="Delivered">Delivered</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -286,7 +290,7 @@ export default function AdminOrdersPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={() => setSelectedOrder(order)}>
+                            <DropdownMenuItem onSelect={() => setTimeout(() => setSelectedOrder(order), 100)}>
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -312,62 +316,62 @@ export default function AdminOrdersPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Order Details Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-          <DialogContent className="sm:max-w-lg">
-              {selectedOrder && (
-                  <>
-                      <DialogHeader>
-                          <DialogTitle>Order Details: {selectedOrder.id}</DialogTitle>
-                          <DialogDescription>
-                              Full details for the order placed on {new Date(selectedOrder.date).toLocaleDateString()}.
-                          </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                          <div className="space-y-2">
-                              <h4 className="font-semibold">Customer Information</h4>
-                              <div className="text-sm text-muted-foreground">
-                                  <p><strong>Name:</strong> {selectedOrder.customer}</p>
-                                  <p><strong>Phone:</strong> {selectedOrder.phone}</p>
-                                  <p><strong>Address:</strong> {selectedOrder.address}</p>
-                              </div>
-                          </div>
-                          <Separator />
-                          <div className="space-y-2">
-                              <h4 className="font-semibold">Ordered Items</h4>
-                               <ul className="space-y-2 text-sm">
-                                  {selectedOrder.products.map((product, index) => {
-                                      const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
-                                      return (
-                                        <li key={index} className="flex justify-between items-center">
-                                            <Link href={`/product/${productSlug}`} className="hover:underline" target="_blank" rel="noopener noreferrer">
-                                                <span>{product.name} (x{product.quantity})</span>
-                                            </Link>
-                                            <span className="font-medium">BDT {(product.price * product.quantity).toLocaleString()}</span>
-                                        </li>
-                                      )
-                                  })}
-                              </ul>
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between font-bold text-base">
-                              <span>Total Amount</span>
-                              <span>BDT {parseInt(selectedOrder.amount).toLocaleString()}</span>
-                          </div>
-                      </div>
-                      <DialogFooter>
-                          <Button variant="secondary" onClick={() => handlePrintInvoice(selectedOrder)}>
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print Invoice
-                          </Button>
-                          <Button variant="outline" onClick={() => setSelectedOrder(null)}>Close</Button>
-                      </DialogFooter>
-                  </>
-              )}
-          </DialogContent>
+        <DialogContent className="sm:max-w-lg">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order Details: {selectedOrder.id}</DialogTitle>
+                <DialogDescription>
+                  Full details for the order placed on {new Date(selectedOrder.date).toLocaleDateString()}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Customer Information</h4>
+                  <div className="text-sm text-muted-foreground">
+                    <p><strong>Name:</strong> {selectedOrder.customer}</p>
+                    <p><strong>Phone:</strong> {selectedOrder.phone}</p>
+                    <p><strong>Address:</strong> {selectedOrder.address}</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Ordered Items</h4>
+                  <ul className="space-y-2 text-sm">
+                    {selectedOrder.products.map((product, index) => {
+                      const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
+                      return (
+                        <li key={index} className="flex justify-between items-center">
+                          <Link href={`/product/${productSlug}`} className="hover:underline" target="_blank" rel="noopener noreferrer">
+                            <span>{product.name} (x{product.quantity})</span>
+                          </Link>
+                          <span className="font-medium">BDT {(product.price * product.quantity).toLocaleString()}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-base">
+                  <span>Total Amount</span>
+                  <span>BDT {parseInt(selectedOrder.amount).toLocaleString()}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => handlePrintInvoice(selectedOrder)}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Invoice
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedOrder(null)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
       </Dialog>
-      
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
         <AlertDialogContent>
