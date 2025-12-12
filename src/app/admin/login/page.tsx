@@ -40,12 +40,7 @@ const recoveryEmailSchema = z.object({
   recoveryEmail: z.string().email('Please enter a valid email address.'),
 });
 
-// Admin emails allowed (simple strict check for now)
-const ALLOWED_ADMIN_EMAILS = [
-  'admin@rodela.com',
-  // Add other admin emails here or use process.env
-  process.env.NEXT_PUBLIC_ADMIN_EMAIL,
-].filter(Boolean);
+import { isAdminEmail } from '@/lib/utils';
 
 export default function AdminLoginPage() {
   const { toast } = useToast();
@@ -120,7 +115,7 @@ export default function AdminLoginPage() {
 
     // 2. Allowed Admin Domain/Email Check
     // In production, use Firebase Custom Claims for true admin security.
-    if (!ALLOWED_ADMIN_EMAILS.includes(email) && !email.endsWith('@rodela.com')) {
+    if (!isAdminEmail(email)) {
       toast({
         variant: 'destructive',
         title: 'Access Denied',

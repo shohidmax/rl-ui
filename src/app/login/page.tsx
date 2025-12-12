@@ -94,7 +94,7 @@ export default function LoginPage() {
         const err = error || gError || resetError;
         if (err) {
             let msg = err.message;
-            if (err.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+            if ((err as any).code === 'auth/invalid-credential') msg = 'Invalid credentials.';
             toast({ variant: 'destructive', title: 'Error', description: msg });
         }
     }, [error, gError, resetError, toast]);

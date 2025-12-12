@@ -24,7 +24,10 @@ import { categories } from '@/lib/data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
+import { db, storage } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -64,6 +67,7 @@ const formSchema = z.object({
 export default function AdminNewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,14 +83,59 @@ export default function AdminNewProductPage() {
 
   const galleryFiles = form.watch('galleryImages');
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you would handle form submission to your backend here.
-    console.log(values);
-    toast({
-      title: 'Product Created',
-      description: 'The new product has been successfully added.',
-    });
-    router.push('/admin/products');
+  async function uploadImage(file: File, path: string) {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
+  }
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      // 1. Upload Main Image
+      const mainImageFile = values.productImage[0];
+      const mainImagePath = `products/${Date.now()}-${mainImageFile.name}`;
+      const mainImageUrl = await uploadImage(mainImageFile, mainImagePath);
+
+      // 2. Upload Gallery Images
+      const galleryImageUrls = [];
+      if (values.galleryImages && values.galleryImages.length > 0) {
+        for (const file of Array.from(values.galleryImages) as File[]) {
+          const galleryPath = `products/gallery/${Date.now()}-${file.name}`;
+          const url = await uploadImage(file, galleryPath);
+          galleryImageUrls.push(url);
+        }
+      }
+
+      // 3. Save Product Data to Firestore
+      await addDoc(collection(db, 'products'), {
+        name: values.name,
+        highlights: values.highlights,
+        description: values.description,
+        price: values.price,
+        stock: values.stock,
+        category: values.category,
+        image: mainImageUrl,
+        gallery: galleryImageUrls,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      toast({
+        title: 'Product Created',
+        description: 'The new product has been successfully added.',
+      });
+      router.push('/admin/products');
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -301,7 +350,10 @@ export default function AdminNewProductPage() {
               <Button variant="outline" asChild>
                 <Link href="/admin/products">Discard</Link>
               </Button>
-              <Button type="submit">Save Product</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Product
+              </Button>
             </div>
           </form>
         </Form>
