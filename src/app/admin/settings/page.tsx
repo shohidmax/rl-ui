@@ -277,51 +277,57 @@ export default function AdminSettingsPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    members.map((member) => (
-                                        <TableRow key={member.id}>
-                                            <TableCell className="font-medium">{member.email}</TableCell>
-                                            <TableCell>
-                                                <Select
-                                                    value={member.role}
-                                                    onValueChange={(val: "admin" | "moderator") => handleUpdateRole(member.id, val)}
-                                                    disabled={user?.email === member.email}
-                                                >
-                                                    <SelectTrigger className="h-8 w-[130px]">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="admin">
-                                                            <div className="flex items-center">
-                                                                <ShieldCheck className="mr-2 h-3 w-3" />
-                                                                Admin
-                                                            </div>
-                                                        </SelectItem>
-                                                        <SelectItem value="moderator">
-                                                            <div className="flex items-center">
-                                                                <Shield className="mr-2 h-3 w-3" />
-                                                                Moderator
-                                                            </div>
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                    onClick={() => handleRemoveMember(member.id)}
-                                                    disabled={user?.email === member.email || rowLoading === member.id}
-                                                >
-                                                    {rowLoading === member.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        <Trash2 className="h-4 w-4" />
-                                                    )}
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    members.map((member) => {
+                                        const isSuperAdmin = ['admin@rodela.com', 'rashedul.afl@gmail.com'].includes(member.email);
+                                        return (
+                                            <TableRow key={member.id}>
+                                                <TableCell className="font-medium">
+                                                    {member.email}
+                                                    {isSuperAdmin && <Badge variant="outline" className="ml-2 text-xs">Default</Badge>}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        value={member.role}
+                                                        onValueChange={(val: "admin" | "moderator") => handleUpdateRole(member.id, val)}
+                                                        disabled={user?.email === member.email || isSuperAdmin}
+                                                    >
+                                                        <SelectTrigger className="h-8 w-[130px]">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="admin">
+                                                                <div className="flex items-center">
+                                                                    <ShieldCheck className="mr-2 h-3 w-3" />
+                                                                    Admin
+                                                                </div>
+                                                            </SelectItem>
+                                                            <SelectItem value="moderator">
+                                                                <div className="flex items-center">
+                                                                    <Shield className="mr-2 h-3 w-3" />
+                                                                    Moderator
+                                                                </div>
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className={isSuperAdmin ? "opacity-50 cursor-not-allowed" : "text-red-500 hover:text-red-600 hover:bg-red-50"}
+                                                        onClick={() => handleRemoveMember(member.id)}
+                                                        disabled={user?.email === member.email || rowLoading === member.id || isSuperAdmin}
+                                                    >
+                                                        {rowLoading === member.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>

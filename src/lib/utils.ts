@@ -9,6 +9,7 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   const ALLOWED_ADMIN_EMAILS = [
     'admin@rodela.com',
+    'rashedul.afl@gmail.com',
     process.env.NEXT_PUBLIC_ADMIN_EMAIL,
   ].filter(Boolean) as string[];
 
