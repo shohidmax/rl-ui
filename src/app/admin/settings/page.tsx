@@ -319,7 +319,7 @@ export default function AdminSettingsPage() {
                                                         disabled={user?.email === member.email || rowLoading === member.id || isSuperAdmin}
                                                     >
                                                         {rowLoading === member.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <span className="loading loading-spinner text-error h-4 w-4 border-2"></span>
                                                         ) : (
                                                             <Trash2 className="h-4 w-4" />
                                                         )}
@@ -374,7 +374,7 @@ export default function AdminSettingsPage() {
                             </div>
                             <Button type="submit" className="w-full" disabled={isAdding}>
                                 {isAdding ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <span className="loading loading-spinner text-error mr-2 h-4 w-4 border-2"></span>
                                 ) : (
                                     <UserCog className="h-4 w-4 mr-2" />
                                 )}

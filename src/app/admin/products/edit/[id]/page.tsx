@@ -70,7 +70,7 @@ export default function AdminEditProductPage() {
       category: product?.category || '',
     },
   });
-  
+
   useEffect(() => {
     if (product) {
       form.reset({
@@ -175,14 +175,14 @@ export default function AdminEditProductPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-6">
-                       <FormField
+                      <FormField
                         control={form.control}
                         name="price"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Price (BDT)</FormLabel>
                             <FormControl>
-                                <Input type="number" step="0.01" {...field} />
+                              <Input type="number" step="0.01" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -218,24 +218,41 @@ export default function AdminEditProductPage() {
                       render={({ field: { onChange, value, ...rest } }) => (
                         <FormItem>
                           <FormControl>
-                            <Input 
-                                type="file" 
-                                multiple 
-                                accept="image/*"
-                                onChange={(e) => onChange(e.target.files)} 
-                                {...rest}
+                            <Input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={(e) => {
+                                if (e.target.files) {
+                                  onChange(Array.from(e.target.files));
+                                }
+                              }}
+                              {...rest}
+                              value={undefined}
                             />
                           </FormControl>
                           <FormMessage />
-                          {galleryFiles && galleryFiles.length > 0 && (
+                          {value && Array.from(value).length > 0 && (
                             <div className="grid grid-cols-3 gap-2 pt-4">
-                              {Array.from(galleryFiles).map((file, index) => (
-                                <div key={index} className="relative aspect-square">
+                              {Array.from(value).map((file: any, index: number) => (
+                                <div key={index} className="relative aspect-square group">
                                   <img
-                                    src={URL.createObjectURL(file as Blob)}
+                                    src={URL.createObjectURL(file)}
                                     alt={`preview ${index}`}
                                     className="w-full h-full object-cover rounded-md"
                                   />
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => {
+                                      const newFiles = Array.from(value).filter((_, i) => i !== index);
+                                      onChange(newFiles);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               ))}
                             </div>
@@ -286,25 +303,48 @@ export default function AdminEditProductPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                     {product.image && !form.watch('productImage')?.[0] && (
-                        <div className="relative aspect-square w-full mb-4">
-                            <img src={product.image} alt={product.name} className="object-cover rounded-md w-full h-full" />
-                        </div>
-                     )}
+                    {product.image && !form.watch('productImage')?.[0] && (
+                      <div className="relative aspect-square w-full mb-4">
+                        <img src={product.image} alt={product.name} className="object-cover rounded-md w-full h-full" />
+                      </div>
+                    )}
                     <FormField
                       control={form.control}
                       name="productImage"
                       render={({ field: { onChange, value, ...rest } }) => (
                         <FormItem>
-                           <FormControl>
-                             <Input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={(e) => onChange(e.target.files)} 
-                                {...rest}
-                             />
-                           </FormControl>
-                           <FormMessage />
+                          <FormControl>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                if (e.target.files) {
+                                  onChange(Array.from(e.target.files));
+                                }
+                              }}
+                              {...rest}
+                              value={undefined}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          {value && value.length > 0 && (
+                            <div className="relative aspect-square w-full mt-4 group">
+                              <img
+                                src={URL.createObjectURL(value[0])}
+                                alt="Main preview"
+                                className="w-full h-full object-cover rounded-md"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => onChange([])}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
                         </FormItem>
                       )}
                     />

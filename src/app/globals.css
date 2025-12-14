@@ -61,3 +61,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .loading {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    pointer-events: none;
+  }
+  
+  .loading-spinner {
+    border: 3px solid currentColor;
+    border-right-color: transparent; 
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  .text-error {
+    color: hsl(var(--destructive)); 
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
