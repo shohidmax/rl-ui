@@ -94,7 +94,7 @@ export default function AdminOrdersPage() {
   };
 
   const handlePrintInvoice = (order: Order) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (printWindow) {
       const isInsideDhaka = order.address.toLowerCase().includes('dhaka');
       const shippingCharge = isInsideDhaka ? 60 : 120;
@@ -111,20 +111,20 @@ export default function AdminOrdersPage() {
               body { 
                 font-family: 'monospace', sans-serif; 
                 width: 80mm; 
-                margin: 0;
+                margin: 0 auto;
                 padding: 10px;
-                font-size: 10px;
+                font-size: 12px;
               }
-              .header { text-align: center; margin-bottom: 10px; }
-              .header h2 { margin: 0; font-size: 14px; }
-              .header p { margin: 0; font-size: 10px; }
-              .section { margin-bottom: 10px; }
-              .section-title { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-weight: bold; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .header h2 { margin: 0; font-size: 16px; font-weight: bold; }
+              .header p { margin: 5px 0 0; font-size: 12px; }
+              .section { margin-bottom: 15px; }
+              .section-title { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 10px 0; font-weight: bold; }
               table { width: 100%; border-collapse: collapse; }
-              th, td { text-align: left; padding: 2px 0; }
+              th, td { text-align: left; padding: 4px 0; }
               .text-right { text-align: right; }
-              .totals-table td { padding: 1px 0; }
-              .footer { text-align: center; margin-top: 15px; border-top: 1px dashed #000; padding-top: 5px;}
+              .totals-table td { padding: 2px 0; }
+              .footer { text-align: center; margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px;}
             </style>
           </head>
           <body>
@@ -133,8 +133,8 @@ export default function AdminOrdersPage() {
               <p>Your destination for premium apparel</p>
             </div>
             <div class="section">
-              <p>Order ID: ${order.id}</p>
-              <p>Date: ${orderDate}</p>
+              <p><strong>Order ID:</strong> ${order.id}</p>
+              <p><strong>Date:</strong> ${orderDate}</p>
             </div>
             <div class="section">
                 <p><strong>Customer:</strong> ${order.customer}</p>
@@ -154,7 +154,7 @@ export default function AdminOrdersPage() {
                   <tr>
                     <td>
                       ${p.quantity} x ${p.name}<br/>
-                      &nbsp;&nbsp;&nbsp;@ ${p.price.toLocaleString()}
+                      <span style="font-size: 10px; color: #555;">@ ${p.price.toLocaleString()}</span>
                     </td>
                     <td class="text-right">${(p.quantity * p.price).toLocaleString()}</td>
                   </tr>
@@ -180,18 +180,20 @@ export default function AdminOrdersPage() {
             </table>
             <div class="footer">
               <p>Thank you for your purchase!</p>
+              <p>www.rodelaslifestyle.com</p>
             </div>
             <script>
-              window.onload = function() {
+              setTimeout(function() {
                 window.print();
-                window.close();
-              }
+                // window.close(); // Optional: kept open for manual closing if needed
+              }, 500);
             </script>
           </body>
         </html>
       `;
       printWindow.document.write(invoiceHtml);
       printWindow.document.close();
+      printWindow.focus();
     }
   };
 
