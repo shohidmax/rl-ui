@@ -20,7 +20,7 @@ import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Ruler } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -29,6 +29,8 @@ import { Label } from '@/components/ui/label';
 type ProductPageProps = {
   params: Promise<{ id: string }>;
 };
+
+const DEFAULT_SIZE_GUIDE = "Small: Chest 36, Length 40\nMedium: Chest 38, Length 42\nLarge: Chest 40, Length 44\nXL: Chest 42, Length 46\nXXL: Chest 44, Length 48";
 
 export default function ProductDetailPage({ params }: ProductPageProps) {
   const [api, setApi] = useState<CarouselApi>();
@@ -184,6 +186,16 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">(in stock)</p>
+                  </div>
+
+                  <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      <Ruler className="w-4 h-4" />
+                      Size Guide
+                    </h3>
+                    <div className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">
+                      {product.sizeGuide || DEFAULT_SIZE_GUIDE}
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">

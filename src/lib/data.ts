@@ -74,6 +74,7 @@ export const products: Product[] = [
     imageHint: 'Woman in grey floral three piece',
     category: 'three-piece',
     stock: 10,
+    sizeGuide: "Small: Chest 36, Length 40\nMedium: Chest 38, Length 42\nLarge: Chest 40, Length 44",
   },
   {
     id: '2',
