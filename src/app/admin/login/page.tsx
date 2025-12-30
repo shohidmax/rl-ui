@@ -17,132 +17,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Bot, Loader2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
-import { useSignInWithEmailAndPassword, useSendPasswordResetEmail } from 'react-firebase-hooks/auth';
+import { useState } from 'react';
+import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/components/providers/auth-provider';
 
 const loginFormSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
   password: z.string().min(1, 'Password is required.'),
-  pin: z.string().regex(/^\d{4}$/, 'Security PIN must be 4 digits.'),
 });
-
-const recoveryEmailSchema = z.object({
-  recoveryEmail: z.string().email('Please enter a valid email address.'),
-});
-
-import { isAdminEmail } from '@/lib/utils';
 
 export default function AdminLoginPage() {
   const { toast } = useToast();
-  const router = useRouter();
-  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
-
-  // Firebase Hooks
-  const [
-    signInWithEmailAndPassword,
-    user,
-    loading,
-    error,
-  ] = useSignInWithEmailAndPassword(auth);
-
-  const [sendPasswordResetEmail, sending, resetError] = useSendPasswordResetEmail(auth);
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const loginForm = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
       email: '',
       password: '',
-      pin: '',
     },
   });
 
-  const recoveryFormEmail = useForm<z.infer<typeof recoveryEmailSchema>>({
-    resolver: zodResolver(recoveryEmailSchema),
-    defaultValues: { recoveryEmail: '' },
-  });
+  async function onLoginSubmit(values: z.infer<typeof loginFormSchema>) {
+    const { email, password } = values;
+    setLoading(true);
 
-  // Handle Firebase Login Errors
-  useEffect(() => {
-    if (error) {
-      let msg = 'Invalid credentials.';
-      if (error.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
-      if (error.code === 'auth/user-not-found') msg = 'User not found.';
-      if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-      if (error.code === 'auth/too-many-requests') msg = 'Too many failed attempts. Try again later.';
-
+    try {
+      const user = await apiClient.post<any>('/auth/login', { email, password });
+      if (user) {
+        if (user.role !== 'admin') {
+          toast({
+            variant: 'destructive',
+            title: 'Access Denied',
+            description: 'You are not an administrator.',
+          });
+          setLoading(false);
+          return;
+        }
+        login(user);
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back!',
+        });
+        // Redirect handled by login function or AuthGuard
+      }
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: msg,
+        description: error.message || 'Invalid credentials',
       });
-    }
-  }, [error, toast]);
-
-  // Handle Login Success
-  useEffect(() => {
-    if (user) {
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
-      });
-      router.push('/admin');
-    }
-  }, [user, router, toast]);
-
-  async function onLoginSubmit(values: z.infer<typeof loginFormSchema>) {
-    const { email, password, pin } = values;
-
-    // 1. PIN Check (Local Security Layer)
-    const validPin = process.env.NEXT_PUBLIC_ADMIN_PIN || '9999';
-    if (pin !== validPin) {
-      toast({
-        variant: 'destructive',
-        title: 'Access Denied',
-        description: 'Invalid Security PIN.',
-      });
-      return;
-    }
-
-    // 2. Allowed Admin Domain/Email Check
-    // In production, use Firebase Custom Claims for true admin security.
-    if (!isAdminEmail(email)) {
-      toast({
-        variant: 'destructive',
-        title: 'Access Denied',
-        description: 'This email is not authorized for admin access.',
-      });
-      return;
-    }
-
-    // 3. Firebase Login
-    await signInWithEmailAndPassword(email, password);
-  }
-
-  async function onRecoveryEmailSubmit(values: z.infer<typeof recoveryEmailSchema>) {
-    const success = await sendPasswordResetEmail(values.recoveryEmail);
-    if (success) {
-      toast({
-        title: 'Reset Link Sent',
-        description: `Check ${values.recoveryEmail} for a password reset link.`,
-      });
-      setIsRecoveryOpen(false);
-      recoveryFormEmail.reset();
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: resetError?.message || 'Failed to send reset email.',
-      });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -168,7 +95,7 @@ export default function AdminLoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="admin@rodela.com" {...field} suppressHydrationWarning />
+                      <Input type="email" placeholder="admin@rodela.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -181,23 +108,9 @@ export default function AdminLoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} suppressHydrationWarning />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={loginForm.control}
-                name="pin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Security PIN</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••" maxLength={4} {...field} suppressHydrationWarning />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-[10px] text-muted-foreground text-right">* Check .env for PIN</p>
                   </FormItem>
                 )}
               />
@@ -207,46 +120,6 @@ export default function AdminLoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
-            <Dialog open={isRecoveryOpen} onOpenChange={setIsRecoveryOpen}>
-              <DialogTrigger asChild>
-                <Button variant="link" className="p-0 h-auto">Forgot Password?</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Reset Password</DialogTitle>
-                  <DialogDescription>
-                    Enter your email to receive a password reset link.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <Form {...recoveryFormEmail}>
-                  <form onSubmit={recoveryFormEmail.handleSubmit(onRecoveryEmailSubmit)} id="recovery-email-form" className="space-y-4 pt-4">
-                    <FormField
-                      control={recoveryFormEmail.control}
-                      name="recoveryEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Registered Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="admin@rodela.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsRecoveryOpen(false)}>Cancel</Button>
-                  <Button type="submit" form="recovery-email-form" disabled={sending}>
-                    {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Send Reset Link'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
         </CardContent>
       </Card>
     </div>

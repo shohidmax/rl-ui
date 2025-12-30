@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -20,18 +17,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { categories } from '@/lib/data';
+import { categories } from '@/lib/data'; // We can keep using static categories or fetch them too
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Loader2 } from 'lucide-react';
-import { db, storage, auth } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuthState } from 'react-firebase-hooks/auth';
 import { z } from 'zod';
 import {
   Form,
@@ -42,6 +35,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/components/providers/auth-provider';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Product name is required.'),
@@ -53,21 +48,13 @@ const formSchema = z.object({
   stock: z.coerce.number().int().nonnegative('Stock must be a non-negative integer.'),
   category: z.string().min(1, 'Please select a category.'),
   productImage: z.any().optional(),
-  galleryImages: z.any()
-    .refine((files) => {
-      if (!files) return true;
-      return Array.from(files).every((file: any) => file?.size <= 5000000);
-    }, `Max file size is 5MB.`)
-    .refine((files) => {
-      if (!files) return true;
-      return Array.from(files).every((file: any) => ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file?.type));
-    }, ".jpg, .jpeg, .png and .webp files are accepted.")
-    .optional(),
+  galleryImages: z.any().optional(),
 });
 
 export default function AdminNewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth(); // We might not strictly need user object if handled by cookie/backend, but helpful
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -84,114 +71,56 @@ export default function AdminNewProductPage() {
     },
   });
 
-  const galleryFiles = form.watch('galleryImages');
+  async function uploadFile(file: File) {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append('file', file);
 
-  // Ensure auth import at the top if not already there, but here we assume it's imported or available via context.
-  // Actually, I need to check imports. `auth` is imported from '@/lib/firebase' in the file already.
-
-  const [user, authLoading] = useAuthState(auth);
-
-  async function uploadImage(file: File, path: string) {
-    if (!user) throw new Error("User not authenticated. Please log in.");
-
-    console.log(`[Upload] Starting resumable upload for ${file.name} to ${path}`);
-    const storageRef = ref(storage, path);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    return new Promise<string>((resolve, reject) => {
-      // Timeout after 300 seconds (5 minutes)
-      const timeoutId = setTimeout(() => {
-        uploadTask.cancel();
-        reject(new Error("Upload timed out after 300 seconds. Internet may be too slow."));
-      }, 300000);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`[Upload] ${file.name}: ${progress.toFixed(2)}% done`);
-        },
-        (error) => {
-          clearTimeout(timeoutId);
-          console.error(`[Upload] Error uploading ${file.name}:`, error);
-          reject(error);
-        },
-        () => {
-          clearTimeout(timeoutId);
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            console.log(`[Upload] Finished: ${downloadURL}`);
-            resolve(downloadURL);
-          }).catch(reject);
-        }
-      );
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
     });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Upload failed');
+    return result.data.url;
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Starting product submission flow", values);
-
-    if (authLoading) {
-      toast({ title: "Please wait", description: "Checking authentication status...", variant: "default" });
-      return;
-    }
-
-    if (!user) {
-      toast({ title: "Authentication Error", description: "You seem to be logged out. Please refresh and log in.", variant: "destructive" });
-      return;
-    }
-
     setIsLoading(true);
     try {
       // 1. Upload Main Image
-      if (!values.productImage || values.productImage.length === 0) {
-        throw new Error("Main image is missing in form data.");
+      let mainImageUrl = '';
+      if (values.productImage && values.productImage.length > 0) {
+        mainImageUrl = await uploadFile(values.productImage[0]);
+      } else {
+        throw new Error("Main image is required.");
       }
-
-      toast({ title: "Uploading...", description: "Uploading main product image." });
-      console.log("Uploading main image...");
-
-      const mainImageFile = values.productImage[0];
-      const mainImagePath = `products/${Date.now()}-${mainImageFile.name}`;
-      const mainImageUrl = await uploadImage(mainImageFile, mainImagePath);
-      console.log("Main image uploaded:", mainImageUrl);
 
       // 2. Upload Gallery Images
-      const galleryImageUrls = [];
+      const galleryImageUrls: string[] = [];
       if (values.galleryImages && values.galleryImages.length > 0) {
-        toast({ title: "Uploading...", description: `Uploading ${values.galleryImages.length} gallery images.` });
-        console.log("Uploading gallery images...");
-
-        const files = Array.isArray(values.galleryImages) ? values.galleryImages : Array.from(values.galleryImages);
-        for (const file of files as File[]) {
-          const galleryPath = `products/gallery/${Date.now()}-${file.name}`;
-          const url = await uploadImage(file, galleryPath);
-          galleryImageUrls.push(url);
+        for (const file of Array.from(values.galleryImages)) {
+          const url = await uploadFile(file as File);
+          if (url) galleryImageUrls.push(url);
         }
-        console.log("Gallery images uploaded:", galleryImageUrls);
       }
 
-      // 3. Save Product Data to Firestore
-      toast({ title: "Saving...", description: "Saving product details to database." });
-      console.log("Saving to Firestore...");
-
+      // 3. Save Product
       const productData = {
-        name: values.name,
-        highlights: values.highlights,
-        description: values.description,
-        sizeGuide: values.sizeGuide,
-        size: values.size,
+        ...values,
+        image: mainImageUrl, // Backend expects 'image'
+        images: galleryImageUrls, // Backend expects 'images' (plural)? Review Schema.
         price: Number(values.price),
         stock: Number(values.stock),
-        category: values.category,
-        image: mainImageUrl,
-        gallery: galleryImageUrls,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        createdBy: user.email, // Track who created it
       };
 
-      const docRef = await addDoc(collection(db, 'products'), productData);
-      console.log("Product saved with ID:", docRef.id);
+      // Check Schema in models.ts!
+      // IProduct has: image: string, images: string[], imageHint: string
+      // So map properly using 'images' for gallery. 
+      // Form values are separate, we construct the payload.
+
+      await apiClient.post('/products', productData);
 
       toast({
         title: 'Success!',
@@ -199,15 +128,14 @@ export default function AdminNewProductPage() {
       });
       router.push('/admin/products');
     } catch (error: any) {
-      console.error("FATAL ERROR in onSubmit:", error);
+      console.error("Error creating product:", error);
       toast({
         variant: "destructive",
         title: "Error Creating Product",
-        description: error.message || "Unknown error occurred. Check console.",
+        description: error.message || "Something went wrong.",
       });
     } finally {
       setIsLoading(false);
-      console.log("Submission process finished.");
     }
   }
 
@@ -285,7 +213,7 @@ export default function AdminNewProductPage() {
                             <FormLabel>Size Guide (Optional)</FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder="Enter size guide details (e.g. S: 36, M: 38, L: 40)..."
+                                placeholder="Enter size guide details..."
                                 className="min-h-24"
                                 {...field}
                               />
@@ -340,9 +268,6 @@ export default function AdminNewProductPage() {
                             <FormControl>
                               <Input placeholder="e.g. Free Size, or S, M, L" {...field} />
                             </FormControl>
-                            <FormDescription>
-                              Enter available sizes or a single size (optional).
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -350,7 +275,6 @@ export default function AdminNewProductPage() {
                     </div>
                   </CardContent>
                 </Card>
-
               </div>
               <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
                 <Card>
@@ -419,15 +343,6 @@ export default function AdminNewProductPage() {
                                 alt="Main preview"
                                 className="w-full h-full object-cover rounded-md"
                               />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => onChange([])}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
                             </div>
                           )}
                         </FormItem>
@@ -438,9 +353,6 @@ export default function AdminNewProductPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Product Gallery</CardTitle>
-                    <CardDescription>
-                      Add additional images for the product. (Optional)
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FormField
@@ -463,31 +375,6 @@ export default function AdminNewProductPage() {
                             />
                           </FormControl>
                           <FormMessage />
-                          {value && Array.from(value).length > 0 && (
-                            <div className="grid grid-cols-3 gap-2 pt-4">
-                              {Array.from(value).map((file: any, index: number) => (
-                                <div key={index} className="relative aspect-square group">
-                                  <img
-                                    src={URL.createObjectURL(file)}
-                                    alt={`preview ${index}`}
-                                    className="w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => {
-                                      const newFiles = Array.from(value).filter((_, i) => i !== index);
-                                      onChange(newFiles);
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </FormItem>
                       )}
                     />

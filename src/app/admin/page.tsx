@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -9,6 +8,7 @@ import {
   ClipboardList,
   Mail,
   PackageX,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -28,24 +28,48 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useMemo } from 'react';
-import { recentOrders, products } from '@/lib/data';
+import { useMemo, useState, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
+import { apiClient } from '@/lib/api-client';
+import { IOrder, IProduct } from '@/lib/models';
+
+type DashboardData = {
+  orders: IOrder[];
+  products: IProduct[];
+};
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<DashboardData>({ orders: [], products: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await apiClient.get<DashboardData>('/dashboard');
+        setData(res);
+      } catch (e) {
+        console.error("Failed to fetch dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   const stats = useMemo(() => {
+    const orders = data.orders;
     const today = new Date();
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const todaysOrders = recentOrders.filter(
+    const todaysOrders = orders.filter(
       (order) => new Date(order.date) >= startOfToday
     );
-    const monthlyOrders = recentOrders.filter(
+    const monthlyOrders = orders.filter(
       (order) => new Date(order.date) >= startOfMonth
     );
 
-    const totalRevenue = recentOrders
+    const totalRevenue = orders
       .filter((o) => o.status === 'Delivered')
       .reduce((acc, order) => acc + parseFloat(order.amount), 0);
 
@@ -55,22 +79,27 @@ export default function AdminDashboardPage() {
       totalRevenue: totalRevenue,
       newInquiries: 5, // Placeholder
     };
-  }, []);
+  }, [data.orders]);
 
   const lastFiveOrders = useMemo(() => {
-    return [...recentOrders]
+    return [...data.orders]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
-  }, []);
+  }, [data.orders]);
 
   const { lowStockProducts, outOfStockProducts } = useMemo(() => {
+    const products = data.products;
     return {
       lowStockProducts: products
         .filter((p) => p.stock > 0 && p.stock <= 5)
         .sort((a, b) => a.stock - b.stock),
       outOfStockProducts: products.filter((p) => p.stock === 0),
     };
-  }, []);
+  }, [data.products]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-96"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -162,28 +191,32 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lastFiveOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            order.status === 'Delivered'
-                              ? 'default'
-                              : order.status === 'Cancelled'
-                                ? 'destructive'
-                                : 'secondary'
-                          }
-                        >
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        BDT {parseInt(order.amount).toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {lastFiveOrders.length > 0 ? (
+                    lastFiveOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>{order.customer}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              order.status === 'Delivered'
+                                ? 'default'
+                                : order.status === 'Cancelled'
+                                  ? 'destructive'
+                                  : 'secondary'
+                            }
+                          >
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          BDT {parseInt(order.amount).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow><TableCell colSpan={4} className="text-center">No orders found</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>

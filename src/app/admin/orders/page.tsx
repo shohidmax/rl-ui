@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -50,95 +49,41 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Printer, Search } from 'lucide-react';
-import { recentOrders, type Order } from '@/lib/data';
+import { MoreHorizontal, Printer, Search, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
+import { apiClient } from '@/lib/api-client';
+import { useToast } from '@/hooks/use-toast';
+import { IOrder } from '@/lib/models'; // Use Interface
+
+type Order = IOrder;
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Separate state for Firestore and Local orders to handle updates independently
-  const [firestoreOrders, setFirestoreOrders] = useState<Order[]>([]);
-  const [localOrders, setLocalOrders] = useState<Order[]>([]);
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.get<Order[]>('/orders');
+      setOrders(data);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch orders' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // 1. Subscribe to Firestore
   useEffect(() => {
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedOrders = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as any[];
-
-      const normalized: Order[] = fetchedOrders.map(order => ({
-        id: order.id,
-        customer: order.customer,
-        phone: order.phone,
-        address: order.address,
-        amount: order.amount,
-        status: order.status,
-        products: order.products,
-        date: order.date,
-      }));
-      setFirestoreOrders(normalized);
-    });
-    return () => unsubscribe();
+    fetchOrders();
   }, []);
-
-  // 2. Subscribe to Local Storage (Offline Orders)
-  useEffect(() => {
-    const loadLocalOrders = () => {
-      const offline = JSON.parse(localStorage.getItem('offline_orders') || '[]');
-      setLocalOrders(offline);
-    };
-
-    // Initial load
-    loadLocalOrders();
-
-    // Listen for changes from other tabs
-    window.addEventListener('storage', loadLocalOrders);
-
-    // Listen for window focus to ensure freshness (e.g. user switches back to tab)
-    window.addEventListener('focus', loadLocalOrders);
-
-    return () => {
-      window.removeEventListener('storage', loadLocalOrders);
-      window.removeEventListener('focus', loadLocalOrders);
-    };
-  }, []);
-
-  // 3. Merge Orders whenever sources change
-  useEffect(() => {
-    // Combine and sort by date descending
-    // We prioritize Firestore orders if IDs match (though in this case IDs should be unique enough or offline ones are distinct)
-    // Actually, offline orders might eventually be synced to Firestore. 
-    // For now, valid to just concat, but let's de-duplicate by ID just in case.
-    const all = [...firestoreOrders, ...localOrders];
-
-    // De-duplicate by ID (taking the first occurrence found)
-    const uniqueMap = new Map();
-    all.forEach(o => {
-      if (!uniqueMap.has(o.id)) {
-        uniqueMap.set(o.id, o);
-      }
-    });
-
-    const sorted = Array.from(uniqueMap.values()).sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    setOrders(sorted);
-  }, [firestoreOrders, localOrders]);
-
-
 
   const filteredOrders = useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
@@ -151,74 +96,28 @@ export default function AdminOrdersPage() {
     });
   }, [orders, statusFilter, searchQuery]);
 
-  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+  const handleStatusChange = async (orderId: string, newStatus: string) => { // Type string is fine as enum in model
     // Optimistic update
-    setOrders(currentOrders =>
-      currentOrders.map(o =>
-        // The orderId in the list comes from doc.id or data.id. 
-        // Our checkout saves `id` inside the doc which matches our random ID.
-        // However, for updateDoc we need the Firestore document ID.
-        // Since we query collection and map doc.id => id only if data.id is not present, 
-        // but we actually need to know which document to update.
-        // Wait, standardizing: In the snapshot mapping above:
-        // `id: doc.id` replaces the `id` inside the data if we are not careful.
-        // Let's look at checkout: `await addDoc(collection(db, 'orders'), orderData);`
-        // `orderData` has a custom `id` field (e.g. ORD1234). 
-        // `addDoc` creates a random document ID (e.g. "AbCdEfGh").
-        // Admin panel needs to update the document by "AbCdEfGh", but visualize "ORD1234".
-        // Strategy: The listener needs to keep track of the Document ID.
-        // Let's fix the useEffect mapping first.
-        o.id === orderId ? { ...o, status: newStatus } : o
-      )
-    );
+    const originalOrders = [...orders];
+    setOrders(current => current.map(o => o.id === orderId ? { ...o, status: newStatus as any } as any : o));
 
     try {
-      // Find the document ID. Since our `orders` items might use "ORD..." as id which is NOT the doc id.
-      // We actually need the doc id to update.
-      // Let's querying for it is inefficient. 
-      // BETTER APPROACH: Include `docId` in our Order type locally or just use one ID.
-      // To simplify without changing types too much:
-      // Let's search for the order in current list (which should have the docId hidden or we need to fetch it).
-      // Actually, let's fix the fetching logic to include a hidden `docId` property or similar.
-      // Wait, standard types are defined in `data.ts` and used everywhere.
-      // Modifying `Order` type in `data.ts` is cleaner.
-      // But for now, let's query the collection where `id` == orderId.
-
-      // Alternative: When we map in useEffect, we can find the doc id. 
-      // BUT my useEffect logic was: `id: doc.id`. 
-      // If checkout saves `id: 'ORD1234'`, then `...doc.data()` overwrites `id` with 'ORD1234'.
-      // So `order.id` is 'ORD1234'. We lost the document ID.
-
-      // I will revise the useEffect to query properly below.
-
-      // For now, assume we will fix the data mapping.
-      // We can't easily find the doc ref without the doc ID. 
-      // I'll query where 'id' == orderId.
-      const q = query(collection(db, 'orders'), where('id', '==', orderId));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const docRef = querySnapshot.docs[0].ref;
-        await updateDoc(docRef, { status: newStatus });
-      }
+      await apiClient.put(`/orders/${orderId}`, { status: newStatus });
+      toast({ title: 'Success', description: `Order status updated to ${newStatus}` });
     } catch (error) {
-      console.error("Error updating status:", error);
+      setOrders(originalOrders); // Revert
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
     }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    // Optimistic delete
-    setOrders(currentOrders => currentOrders.filter(o => o.id !== orderId));
-    setOrderToDelete(null);
-
     try {
-      const q = query(collection(db, 'orders'), where('id', '==', orderId));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        await deleteDoc(querySnapshot.docs[0].ref);
-      }
+      await apiClient.delete(`/orders/${orderId}`);
+      toast({ title: 'Success', description: 'Order deleted' });
+      setOrders(current => current.filter(o => o.id !== orderId));
+      setOrderToDelete(null);
     } catch (error) {
-      console.error("Error deleting order:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete order' });
     }
   };
 
@@ -314,7 +213,6 @@ export default function AdminOrdersPage() {
             <script>
               setTimeout(function() {
                 window.print();
-                // window.close(); // Optional: kept open for manual closing if needed
               }, 500);
             </script>
           </body>
@@ -325,6 +223,10 @@ export default function AdminOrdersPage() {
       printWindow.focus();
     }
   };
+
+  if (loading) {
+    return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -394,7 +296,7 @@ export default function AdminOrdersPage() {
                       <TableCell className="hidden sm:table-cell">{order.customer}</TableCell>
                       <TableCell className="hidden md:table-cell">{new Date(order.date).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Select value={order.status} onValueChange={(newStatus: Order['status']) => handleStatusChange(order.id, newStatus)}>
+                        <Select value={order.status} onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}>
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Update status" />
                           </SelectTrigger>

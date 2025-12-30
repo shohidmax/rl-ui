@@ -1,8 +1,7 @@
 
+"use client";
 
-'use client';
-
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -34,18 +33,53 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { products, categories, type Product } from '@/lib/data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api-client';
+import { useToast } from '@/hooks/use-toast';
+import { IProduct } from '@/lib/models'; // Use Interface from models
+
+// Simplified Product type for frontend if needed, or use IProduct but cast appropriately
+// For now, let's just use IProduct props we need
+type Product = IProduct;
+
+const categories = [
+  { id: 'men', name: 'Men' },
+  { id: 'women', name: 'Women' },
+  { id: 'kids', name: 'Kids' },
+  { id: 'accessories', name: 'Accessories' }
+];
 
 export default function AdminProductsPage() {
-  const [allProducts, setAllProducts] = useState<Product[]>(products);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
+  const { toast } = useToast();
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.get<Product[]>('/products');
+      setAllProducts(data);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to fetch products',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter((product) => {
@@ -53,16 +87,21 @@ export default function AdminProductsPage() {
         categoryFilter === 'all' || product.category === categoryFilter;
       const stockMatch =
         stockFilter === 'all' ||
-        (stockFilter === 'in-stock' && product.stock > 0) ||
-        (stockFilter === 'out-of-stock' && product.stock === 0) ||
-        (stockFilter === 'low-stock' && product.stock > 0 && product.stock <= 5);
+        (stockFilter === 'in-stock' && (product.stock || 0) > 0) ||
+        (stockFilter === 'out-of-stock' && (product.stock || 0) === 0) ||
+        (stockFilter === 'low-stock' && (product.stock || 0) > 0 && (product.stock || 0) <= 5);
       return categoryMatch && stockMatch;
     });
   }, [allProducts, categoryFilter, stockFilter]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProductIds(filteredProducts.map((p) => p.id));
+      // Use _id or custom id? Model has 'id' and '_id'.
+      // If using Mongoose, '_id' is default. But our model has 'id'.
+      // The API returns what is in DB.
+      // Let's use 'id' field if available, fallback to '_id'. 
+      // Assuming 'id' is the custom ID we want to use for admin selection if consistent.
+      setSelectedProductIds(filteredProducts.map((p) => (p as any).id || (p as any)._id));
     } else {
       setSelectedProductIds([]);
     }
@@ -76,10 +115,29 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleDeleteSelected = () => {
-    setAllProducts((prev) =>
-      prev.filter((p) => !selectedProductIds.includes(p.id))
-    );
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await apiClient.delete(`/products/${id}`);
+      toast({ title: 'Success', description: 'Product deleted' });
+      fetchProducts();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete' });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!confirm(`Delete ${selectedProductIds.length} products?`)) return;
+    // Sequential delete for simplicity, or parallel
+    for (const id of selectedProductIds) {
+      try {
+        await apiClient.delete(`/products/${id}`);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    toast({ title: 'Batch Action', description: 'Selected products processed' });
+    fetchProducts();
     setSelectedProductIds([]);
   };
 
@@ -87,9 +145,13 @@ export default function AdminProductsPage() {
     filteredProducts.length > 0 &&
     selectedProductIds.length === filteredProducts.length;
 
+  if (loading) {
+    return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
   return (
     <div className="flex flex-col gap-4">
-       <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">Products</h1>
         <Button asChild>
           <Link href="/admin/products/new">Add Product</Link>
@@ -101,8 +163,7 @@ export default function AdminProductsPage() {
             <div>
               <CardTitle>Product Management</CardTitle>
               <CardDescription>
-                Here you can view, add, edit, or remove products from your
-                store.
+                View and manage your store products.
               </CardDescription>
             </div>
 
@@ -124,43 +185,43 @@ export default function AdminProductsPage() {
               </DropdownMenu>
             )}
           </div>
-           <div className="mt-4 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-               <div className="grid gap-2">
-                  <Label htmlFor="category-filter">Filter by Category</Label>
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                  >
-                    <SelectTrigger id="category-filter" aria-label="Select category">
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-              </div>
-               <div className="grid gap-2">
-                  <Label htmlFor="stock-filter">Filter by Stock</Label>
-                   <Select
-                    value={stockFilter}
-                    onValueChange={setStockFilter}
-                  >
-                    <SelectTrigger id="stock-filter" aria-label="Select stock status">
-                      <SelectValue placeholder="Select Stock Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="in-stock">In Stock</SelectItem>
-                      <SelectItem value="low-stock">Low Stock</SelectItem>
-                      <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                    </SelectContent>
-                  </Select>
-              </div>
+          <div className="mt-4 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="category-filter">Filter by Category</Label>
+              <Select
+                value={categoryFilter}
+                onValueChange={setCategoryFilter}
+              >
+                <SelectTrigger id="category-filter" aria-label="Select category">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="stock-filter">Filter by Stock</Label>
+              <Select
+                value={stockFilter}
+                onValueChange={setStockFilter}
+              >
+                <SelectTrigger id="stock-filter" aria-label="Select stock status">
+                  <SelectValue placeholder="Select Stock Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="in-stock">In Stock</SelectItem>
+                  <SelectItem value="low-stock">Low Stock</SelectItem>
+                  <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -192,16 +253,16 @@ export default function AdminProductsPage() {
               <TableBody>
                 {filteredProducts.map((product) => (
                   <TableRow
-                    key={product.id}
+                    key={(product as any).id || (product as any)._id}
                     data-state={
-                      selectedProductIds.includes(product.id) && 'selected'
+                      selectedProductIds.includes((product as any).id || (product as any)._id) && 'selected'
                     }
                   >
                     <TableCell>
                       <Checkbox
-                        checked={selectedProductIds.includes(product.id)}
+                        checked={selectedProductIds.includes((product as any).id || (product as any)._id)}
                         onCheckedChange={(checked) =>
-                          handleSelectRow(product.id, checked as boolean)
+                          handleSelectRow((product as any).id || (product as any)._id, checked as boolean)
                         }
                         aria-label="Select row"
                       />
@@ -211,21 +272,21 @@ export default function AdminProductsPage() {
                         alt={product.name}
                         className="aspect-square rounded-md object-cover"
                         height="64"
-                        src={product.image}
+                        src={product.image || '/placeholder.svg'}
                         width="64"
                       />
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>
-                      <Badge variant={product.stock > 0 ? (product.stock <= 5 ? 'secondary' : 'default') : 'destructive'}>
-                        {product.stock > 0 ? (product.stock <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}
+                      <Badge variant={(product.stock || 0) > 0 ? ((product.stock || 0) <= 5 ? 'secondary' : 'default') : 'destructive'}>
+                        {(product.stock || 0) > 0 ? ((product.stock || 0) <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       BDT {product.price.toLocaleString()}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {product.stock}
+                      {product.stock || 0}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -242,9 +303,11 @@ export default function AdminProductsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem asChild>
-                            <Link href={`/admin/products/edit/${product.id}`}>Edit</Link>
+                            <Link href={`/admin/products/edit/${(product as any).id}`}>Edit</Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-500" onClick={() => handleDelete((product as any).id)}>
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

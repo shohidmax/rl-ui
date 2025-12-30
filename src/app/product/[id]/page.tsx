@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { products } from '@/lib/data';
+import { products as staticProducts } from '@/lib/data';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import Image from 'next/image';
@@ -20,7 +20,7 @@ import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus, Ruler } from 'lucide-react';
+import { Plus, Minus, Ruler, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -31,7 +31,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
+import { apiClient } from '@/lib/api-client';
+import { IProduct } from '@/lib/models'; // Assuming IProduct is compatible or we map it
 
 // Even in a client component, params can be a promise.
 // We can use `React.use` to unwrap it.
@@ -45,11 +46,44 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchedProduct, setFetchedProduct] = useState<any>(null); // Use any or specific type if possible
 
   // Asynchronously get the slug from the params promise.
   const { id: slug } = use(params);
 
-  const product = products.find((p) => p.name.toLowerCase().replace(/\s+/g, '-') === slug);
+  // First try static products
+  const staticProduct = staticProducts.find((p) => p.name.toLowerCase().replace(/\s+/g, '-') === slug);
+  const product = staticProduct || fetchedProduct;
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (staticProduct) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Fallback: Fetch all products and find by slug
+        // Note: Ideally API should support slug lookup
+        const allProducts = await apiClient.get<IProduct[]>('/products');
+        const found = allProducts.find((p: IProduct) =>
+          p.name.toLowerCase().replace(/\s+/g, '-') === slug
+        );
+
+        if (found) {
+          setFetchedProduct(found);
+        }
+      } catch (error) {
+        console.error("Failed to fetch product from API", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [slug, staticProduct]);
+
 
   useEffect(() => {
     if (!api) {
@@ -69,6 +103,14 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
     };
   }, [api]);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!product) {
     notFound();
   }
@@ -83,7 +125,13 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
     }
   };
 
-  const relatedProducts = products
+  // For related products, we can mix static and dynamic if needed, 
+  // but for now let's use static products as related items fallback or fetch from API if we want full dynamic
+  // Keeping simple: use static products + fetched product category matching if possible
+  // If product is from API, we might not readily have all other API products here unless we keep them.
+  // We'll proceed with static related products for now for simplicity, or filter from the same API list if we cached it.
+  // To match original behavior:
+  const relatedProducts = staticProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
@@ -104,7 +152,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
               {/* Thumbnails - Left Side (Only show if > 1 image) */}
               {galleryImages.length > 1 && (
                 <div className="flex flex-col gap-2 w-[20%]">
-                  {galleryImages.map((img, index) => (
+                  {galleryImages.map((img: string, index: number) => (
                     <div
                       key={index}
                       className={`aspect-[3/4] relative rounded-md overflow-hidden border-2 ${index === current ? 'border-primary' : 'border-transparent'
@@ -129,7 +177,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
               <div className={galleryImages.length > 1 ? "w-[80%]" : "w-full"}>
                 <Carousel setApi={setApi} className="w-full">
                   <CarouselContent>
-                    {galleryImages.map((img, index) => (
+                    {galleryImages.map((img: string, index: number) => (
                       <CarouselItem key={index}>
                         <div className="aspect-[3/4] relative rounded-lg overflow-hidden border">
                           <ZoomableImage
@@ -281,7 +329,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 {relatedProducts.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p as any} />
                 ))}
               </div>
             </div>

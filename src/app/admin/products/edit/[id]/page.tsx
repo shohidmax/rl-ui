@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -20,11 +17,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { categories, products } from '@/lib/data';
+import { categories } from '@/lib/data';
 import Link from 'next/link';
 import { useRouter, notFound, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +35,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { apiClient } from '@/lib/api-client';
+import { IProduct } from '@/lib/models';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Product name is required.'),
@@ -48,6 +47,8 @@ const formSchema = z.object({
   category: z.string().min(1, 'Please select a category.'),
   productImage: z.any().optional(),
   galleryImages: z.any().optional(),
+  size: z.string().optional(),
+  sizeGuide: z.string().optional(),
 });
 
 export default function AdminEditProductPage() {
@@ -55,49 +56,124 @@ export default function AdminEditProductPage() {
   const params = useParams();
   const { toast } = useToast();
   const { id } = params;
-
-  const product = products.find((p) => p.id === id);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [product, setProduct] = useState<IProduct | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    // Use product data for defaultValues, or empty strings if not found
     defaultValues: {
-      name: product?.name || '',
-      description: product?.description || '',
-      highlights: product?.description || '', // Assuming highlights are same as description for mock
-      price: product?.price || 0,
-      stock: product?.stock || 0,
-      category: product?.category || '',
+      name: '',
+      description: '',
+      highlights: '',
+      price: 0,
+      stock: 0,
+      category: '',
+      size: '',
+      sizeGuide: '',
     },
   });
 
   useEffect(() => {
-    if (product) {
-      form.reset({
-        name: product.name,
-        description: product.description,
-        highlights: product.description,
-        price: product.price,
-        stock: product.stock,
-        category: product.category,
-      });
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+        const data = await apiClient.get<IProduct>(`/products/${id}`);
+        setProduct(data);
+        form.reset({
+          name: data.name,
+          description: data.description,
+          highlights: data.highlights || '', // Assuming field exists in interface
+          price: data.price,
+          stock: data.stock,
+          category: data.category,
+          size: data.size || '', // Assuming field exists
+          sizeGuide: data.sizeGuide || '', // Assuming field exists
+        });
+      } catch (error) {
+        console.error("Failed to fetch product", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Product not found or failed to load.",
+        });
+        // router.push('/admin/products'); // Optional: redirect back 
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [product, form]);
+    if (id) fetchProduct();
+  }, [id, form, toast]);
 
-  if (!product) {
-    notFound();
+  async function uploadFile(file: File) {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Upload failed');
+    return result.data.url;
   }
 
-  const galleryFiles = form.watch('galleryImages');
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setSubmitting(true);
+    try {
+      let mainImageUrl = product?.image;
+      if (values.productImage && values.productImage.length > 0) {
+        mainImageUrl = await uploadFile(values.productImage[0]);
+      }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you would handle form submission to your backend here.
-    console.log('Updated product values:', values);
-    toast({
-      title: 'Product Updated',
-      description: 'The product has been successfully updated.',
-    });
-    router.push('/admin/products');
+      let galleryImageUrls = product?.images || [];
+      if (values.galleryImages && values.galleryImages.length > 0) {
+        // New uploads append to existing? Or replace? 
+        // Logic: usually replace or append. Let's just append new ones for now, OR if simpler: 
+        // The form control keeps 'files' which are new uploads. 
+        // Existing images are in 'product.images'.
+        // If we want to remove existing, we need a UI for that. 
+        // For this Edit Page MVP, let's just append new uploads to existing list.
+        for (const file of Array.from(values.galleryImages)) {
+          const url = await uploadFile(file as File);
+          if (url) galleryImageUrls.push(url);
+        }
+      }
+
+      // Construct Payload
+      const payload = {
+        ...values,
+        image: mainImageUrl,
+        images: galleryImageUrls,
+      };
+
+      await apiClient.put(`/products/${id}`, payload);
+
+      toast({
+        title: 'Product Updated',
+        description: 'The product has been successfully updated.',
+      });
+      router.push('/admin/products');
+    } catch (error) {
+      console.error("Update failed", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update product.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-96"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  }
+
+  if (!product) {
+    return <div>Product not found</div>;
   }
 
   return (
@@ -166,6 +242,23 @@ export default function AdminEditProductPage() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="sizeGuide"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Size Guide (Optional)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Enter size guide details..."
+                                className="min-h-24"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -202,16 +295,38 @@ export default function AdminEditProductPage() {
                         )}
                       />
                     </div>
+                    <div className="mt-6">
+                      <FormField
+                        control={form.control}
+                        name="size"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Size / Variant</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Free Size, or S, M, L" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader>
                     <CardTitle>Product Gallery</CardTitle>
                     <CardDescription>
-                      Add or replace images for the product. (Optional)
+                      Add images for the product. Existing images are preserved unless deleted (TODO: Delete UI).
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {product.images && product.images.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        {product.images.map((img, i) => (
+                          <img key={i} src={img} alt={`Gallery ${i}`} className="aspect-square object-cover rounded-md bg-gray-100" />
+                        ))}
+                      </div>
+                    )}
                     <FormField
                       control={form.control}
                       name="galleryImages"
@@ -232,31 +347,6 @@ export default function AdminEditProductPage() {
                             />
                           </FormControl>
                           <FormMessage />
-                          {value && Array.from(value).length > 0 && (
-                            <div className="grid grid-cols-3 gap-2 pt-4">
-                              {Array.from(value).map((file: any, index: number) => (
-                                <div key={index} className="relative aspect-square group">
-                                  <img
-                                    src={URL.createObjectURL(file)}
-                                    alt={`preview ${index}`}
-                                    className="w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => {
-                                      const newFiles = Array.from(value).filter((_, i) => i !== index);
-                                      onChange(newFiles);
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </FormItem>
                       )}
                     />
@@ -305,7 +395,7 @@ export default function AdminEditProductPage() {
                   <CardContent>
                     {product.image && !form.watch('productImage')?.[0] && (
                       <div className="relative aspect-square w-full mb-4">
-                        <img src={product.image} alt={product.name} className="object-cover rounded-md w-full h-full" />
+                        <img src={product.image} alt={product.name} className="object-cover rounded-md w-full h-full bg-gray-100" />
                       </div>
                     )}
                     <FormField
@@ -334,15 +424,6 @@ export default function AdminEditProductPage() {
                                 alt="Main preview"
                                 className="w-full h-full object-cover rounded-md"
                               />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => onChange([])}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
                             </div>
                           )}
                         </FormItem>
@@ -356,7 +437,10 @@ export default function AdminEditProductPage() {
               <Button variant="outline" asChild>
                 <Link href="/admin/products">Cancel</Link>
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </div>
           </form>
         </Form>

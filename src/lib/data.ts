@@ -57,6 +57,7 @@ export const bangladeshDistricts = [
 export const categories: Category[] = [
   { id: 'three-piece', name: 'Three-Piece' },
   { id: 'plazo-khimar-set', name: 'Plazo Khimar Set' },
+  { id: 'Men', name: 'Men' },
 ];
 
 export const products: Product[] = [

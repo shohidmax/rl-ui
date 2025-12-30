@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,10 +32,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Plus, Minus } from 'lucide-react';
 import { bangladeshDistricts } from '@/lib/data';
-import { sendEmail } from '@/ai/flows/send-email-flow';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-
+import { useAuth } from '@/components/providers/auth-provider';
+import { apiClient } from '@/lib/api-client';
 
 const formSchema = z.object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -45,7 +43,8 @@ const formSchema = z.object({
 });
 
 export default function CheckoutPage() {
-    const { cart, clearCart, removeFromCart, updateQuantity } = useCart();
+    const { cart, clearCart, updateQuantity } = useCart();
+    const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
     const [shippingCharge, setShippingCharge] = useState<number | null>(null);
@@ -60,13 +59,12 @@ export default function CheckoutPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            fullName: '',
+            fullName: user?.name || '',
             phoneNumber: '',
             city: '',
             fullAddress: '',
         },
     });
-    console.log("Form Errors:", form.formState.errors);
 
     const selectedCity = form.watch('city');
 
@@ -84,12 +82,12 @@ export default function CheckoutPage() {
 
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log("DEBUG: onSubmit called with values:", values);
-        const orderId = `ORD${Math.floor(1000 + Math.random() * 9000)}`; // 4 digit random ID
+        const orderId = `ORD${Math.floor(1000 + Math.random() * 9000)}`;
 
         const orderData = {
-            id: orderId, // Store the custom ID
+            id: orderId,
             customer: values.fullName,
+            email: user?.email, // Attach user email
             phone: values.phoneNumber,
             address: `${values.fullAddress}, ${values.city}`,
             amount: total.toString(),
@@ -98,61 +96,28 @@ export default function CheckoutPage() {
                 name: item.product.name,
                 quantity: item.quantity,
                 price: item.product.price,
-                image: item.product.image // Keep image for display if needed
+                image: item.product.image
             })),
             date: new Date().toISOString(),
-            createdAt: serverTimestamp(), // Use server timestamp for sorting
-            shippingInfo: values, // Keep full shipping info object just in case
+            shippingInfo: values,
             subtotal,
             shippingCharge
         };
 
         try {
-            // Save to Firestore with timeout
-            console.log("Attempting to save order to Firestore...");
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Firestore operation timed out")), 5000)
-            );
-
-            await Promise.race([
-                addDoc(collection(db, 'orders'), orderData),
-                timeoutPromise
-            ]);
-
-            console.log("Order Saved to Firestore:", orderData);
-
-            // Send email notification (kept as is)
-            try {
-                const emailHtml = `
-                    <h1>New Order Received!</h1>
-                    <p><strong>Order ID:</strong> ${orderId}</p>
-                    <p><strong>Customer:</strong> ${values.fullName}</p>
-                    <p><strong>Phone:</strong> ${values.phoneNumber}</p>
-                    <p><strong>Address:</strong> ${values.fullAddress}, ${values.city}</p>
-                    <h2>Order Items:</h2>
-                    <ul>
-                        ${cart.map(item => `<li>${item.product.name} (x${item.quantity}) - BDT ${item.product.price * item.quantity}</li>`).join('')}
-                    </ul>
-                    <h3>Subtotal: BDT ${subtotal.toLocaleString()}</h3>
-                    <h3>Shipping: BDT ${shippingCharge?.toLocaleString() ?? 'N/A'}</h3>
-                    <h2>Total: BDT ${total.toLocaleString()}</h2>
-                `;
-                // await sendEmail(...) 
-            } catch (emailError) {
-                console.error("Failed to send order notification email:", emailError);
-            }
+            await apiClient.post('/orders', orderData);
 
             toast({
                 title: 'Order Placed!',
                 description: `Your order ${orderId} has been placed successfully.`,
             });
+            clearCart();
+            router.push(`/thank-you?orderId=${orderId}`);
 
         } catch (error) {
-            console.warn("Firestore unreachable (timeout/network), switching to Offline Mode. Error:", error);
-
+            console.error("Order failed:", error);
             // Fallback: Save to Local Storage
             const offlineOrders = JSON.parse(localStorage.getItem('offline_orders') || '[]');
-            // Add a flag to indicate it's offline
             const offlineOrder = { ...orderData, isOffline: true };
             offlineOrders.push(offlineOrder);
             localStorage.setItem('offline_orders', JSON.stringify(offlineOrders));
@@ -162,8 +127,6 @@ export default function CheckoutPage() {
                 description: 'Network issue detected. Your order has been saved to your device.',
                 variant: "default"
             });
-        } finally {
-            // Always complete the flow
             clearCart();
             router.push(`/thank-you?orderId=${orderId}`);
         }
@@ -358,11 +321,7 @@ export default function CheckoutPage() {
                                         type="button"
                                         className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                                         onClick={(e) => {
-                                            console.log("DEBUG: Button clicked");
-                                            form.handleSubmit(
-                                                onSubmit,
-                                                (errors) => console.log("DEBUG: Validation errors:", errors)
-                                            )(e);
+                                            form.handleSubmit(onSubmit)(e);
                                         }}
                                         disabled={form.formState.isSubmitting}
                                     >
